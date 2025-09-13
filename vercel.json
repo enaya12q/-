@@ -1,0 +1,28 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "/smart-coin-backend/server.js"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/smart-coin-frontend/$1"
+        }
+    ],
+    "projects": [
+        {
+            "name": "smart-coin-frontend",
+            "root": "smart-coin-frontend",
+            "buildCommand": "npm run build",
+            "outputDirectory": "smart-coin-frontend/.next",
+            "devCommand": "npm run dev"
+        },
+        {
+            "name": "smart-coin-backend",
+            "root": "smart-coin-backend",
+            "buildCommand": "npm install",
+            "outputDirectory": "smart-coin-backend",
+            "devCommand": "node server.js"
+        }
+    ]
+}
