@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Header from '@/components/Header';
 import AdCard from '@/components/AdCard';
@@ -18,7 +18,7 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const supabase = createClientComponentClient();
 
-    const fetchStats = async () => {
+    const fetchStats = useCallback(async () => {
         try {
             const response = await fetch('/api/ads/stats', {
                 headers: {
@@ -35,7 +35,7 @@ export default function Dashboard() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [supabase.auth]);
 
     const handleAdComplete = async () => {
         try {
