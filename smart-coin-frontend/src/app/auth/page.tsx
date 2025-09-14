@@ -9,7 +9,6 @@ export default function Auth() {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
-    const router = useRouter();
     const searchParams = useSearchParams();
     const supabase = createClientComponentClient();
     const ref = searchParams.get('ref'); // Get referral code from URL if present

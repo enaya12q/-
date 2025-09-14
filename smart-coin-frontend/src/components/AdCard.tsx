@@ -131,7 +131,7 @@ export default function AdCard({ onComplete, remainingAds, rewardPerAd }: AdCard
                         toast.loading('Loading next ad...', { id: 'adSession' });
                         try {
                             await loadAdScript(adScripts[1]);
-                        } catch (error) {
+                        } catch (_error) {
                             clearInterval(timer);
                             setIsWatching(false);
                             toast.error('Failed to load second ad. Please try again.', { id: 'adSession' });
@@ -154,7 +154,7 @@ export default function AdCard({ onComplete, remainingAds, rewardPerAd }: AdCard
                     }
                 }
             }, 1000);
-        } catch (error) {
+        } catch (_error) {
             setIsWatching(false);
             toast.error('Failed to start ad session. Please try again.', { id: 'adSession' });
         }

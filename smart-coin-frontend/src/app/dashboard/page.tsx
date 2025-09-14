@@ -57,7 +57,7 @@ export default function Dashboard() {
 
     useEffect(() => {
         fetchStats();
-    }, []);
+    }, [fetchStats]);
 
     if (loading) {
         return (

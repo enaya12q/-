@@ -6,7 +6,7 @@ const REWARD_PER_AD = 0.002;
 const MAX_DAILY_ADS = 50;
 const REFERRAL_PERCENTAGE = 0.10;
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
         }
 
         // Get current user data
-        const { data: userData, error: userError } = await supabase
+        const { data: _userData, error: userError } = await supabase
             .from('users')
             .select('referrer_id, balance')
             .eq('id', user.id)
