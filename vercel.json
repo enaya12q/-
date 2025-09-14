@@ -9,11 +9,6 @@
             "destination": "/smart-coin-frontend/$1"
         }
     ],
-    "functions": {
-        "smart-coin-backend/server.js": {
-            "runtime": "nodejs18.x"
-        }
-    },
     "builds": [
         {
             "src": "smart-coin-frontend/package.json",
