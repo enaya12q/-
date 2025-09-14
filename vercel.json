@@ -5,6 +5,10 @@
             "destination": "/api"
         },
         {
+            "source": "/auth/callback",
+            "destination": "/smart-coin-frontend/auth/callback"
+        },
+        {
             "source": "/(.*)",
             "destination": "/smart-coin-frontend/$1"
         }

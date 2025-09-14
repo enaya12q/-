@@ -16,9 +16,14 @@ export async function GET(request: Request) {
 
         if (error) {
             console.error('Callback Route: Error exchanging code for session:', error);
+            // Redirect to auth page on error
+            return NextResponse.redirect(requestUrl.origin + '/auth');
+        } else if (data.session) {
+            // Redirect to dashboard on successful session
+            return NextResponse.redirect(requestUrl.origin + '/dashboard');
         }
     }
 
-    // URL to redirect to after sign in process completes
-    return NextResponse.redirect(requestUrl.origin + '/dashboard');
+    // Fallback redirect if no code or session
+    return NextResponse.redirect(requestUrl.origin + '/auth');
 }
