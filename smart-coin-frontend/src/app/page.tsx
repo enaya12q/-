@@ -119,7 +119,7 @@ export default function Home() {
                     <p className="ml-16 text-lg leading-6 font-medium text-gray-900">Refer Friends</p>
                   </dt>
                   <dd className="mt-2 ml-16 text-base text-gray-500">
-                    Earn 10% of your referrals' earnings forever.
+                    Earn 10% of your referrals&apos; earnings forever.
                   </dd>
                 </div>
 
