@@ -6,8 +6,8 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-// Assuming mailer.js exports a sendEmail function
-const { sendEmail } = require('../utils/mailer');
+// Assuming mailer.js exports sendUserEmail and sendAdminNotification functions
+const { sendUserEmail } = require('../utils/mailer');
 
 exports.withdraw = async (req, res) => {
     const { amount } = req.body;
@@ -80,7 +80,7 @@ exports.withdraw = async (req, res) => {
             Thank you for using Smart Coin Labs!
         `;
 
-        await sendEmail(userEmail, emailSubject, emailContent);
+        await sendUserEmail(userEmail, emailSubject, emailContent);
 
         res.status(200).json({ message: 'Withdrawal successful and email sent.', newBalance: currentBalance - amount });
 
