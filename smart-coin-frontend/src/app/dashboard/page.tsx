@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Header from '@/components/Header';
@@ -134,7 +136,7 @@ export default function Dashboard() {
                 {/* Permanent Ad Banner */}
                 <div className="mt-8">
                     <script
-                        async="async"
+                        async
                         data-cfasync="false"
                         src="//pl27623322.revenuecpmgate.com/07a0ea3dee3fc93775251a64a297df45/invoke.js"
                     />
