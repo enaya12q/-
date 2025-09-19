@@ -20,8 +20,9 @@ app.config['MAIL_PASSWORD'] = 'yymu fxwr hnws yzxu' # App password
 ADMIN_EMAIL = 'enayabasmaji9@gmail.com'
 
 def get_db():
+    db_path = os.path.join(app.root_path, '..', app.config['DATABASE'])
     if 'db' not in g:
-        g.db = sqlite3.connect(app.config['DATABASE'])
+        g.db = sqlite3.connect(db_path)
         g.db.row_factory = sqlite3.Row
     return g.db
 
@@ -34,11 +35,16 @@ def close_db(e=None):
 def init_db():
     with app.app_context():
         db = get_db()
-        # Ensure schema.sql is correctly located relative to api/index.py
         schema_path = os.path.join(app.root_path, '..', 'schema.sql')
         with open(schema_path, mode='r') as f:
             db.cursor().executescript(f.read())
         db.commit()
+
+# Initialize the database when the app starts, if it doesn't exist
+with app.app_context():
+    db_path = os.path.join(app.root_path, '..', app.config['DATABASE'])
+    if not os.path.exists(db_path):
+        init_db()
 
 @app.before_request
 def before_request():
@@ -310,3 +316,7 @@ def send_withdrawal_notification(user_id, user_email, amount):
     except Exception as e:
         print(f"Error sending withdrawal notification email: {e}")
         # Log this error, but don't prevent the withdrawal from completing
+
+@app.route('/api/hello')
+def hello():
+    return jsonify({"message": "Hello from Flask API!"})
