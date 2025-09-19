@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>Dashboard</h2>
+    <div class="balance-info">
+        Your current balance: <span class="balance-amount">{{ "%.3f"|format(balance) }} USD</span>
+    </div>
+
+    <div class="ad-section">
+        <h3>Earn by Clicking Ads</h3>
+        <div class="ad-buttons">
+            <div class="ad-button-group">
+                <button class="btn ad-btn" id="ad1">Click for Popunder Ad 1</button>
+                <p>Clicks today: <span id="clicks_ad1">{{ clicks_ad1 }}</span> / {{ ad_limit_per_button }}</p>
+            </div>
+            <div class="ad-button-group">
+                <button class="btn ad-btn" id="ad2">Click for Popunder Ad 2</button>
+                <p>Clicks today: <span id="clicks_ad2">{{ clicks_ad2 }}</span> / {{ ad_limit_per_button }}</p>
+            </div>
+        </div>
+        <p class="total-clicks">Total clicks today: {{ total_clicks_today }} / {{ ad_total_limit }}</p>
+    </div>
+
+    <div class="referral-section">
+        <h3>Refer a Friend</h3>
+        <p>Share your referral link to earn commission when your referrals withdraw:</p>
+        <input type="text" value="{{ referral_link }}" readonly class="referral-link-input">
+        <button class="btn copy-btn" onclick="copyReferralLink()">Copy Link</button>
+    </div>
+
+    <div class="withdrawal-section">
+        <h3>Withdraw Funds</h3>
+        <p>Minimum withdrawal amount: 0.5 USD</p>
+        <a href="{{ url_for('withdraw') }}" class="btn withdraw-btn">Withdraw</a>
+    </div>
+</div>
+
+<!-- Popunder Ad Scripts -->
+<script type='text/javascript'>
+    function showAd(adType, scriptUrl) {
+        const clicksAd1 = parseInt(document.getElementById('clicks_ad1').innerText);
+        const clicksAd2 = parseInt(document.getElementById('clicks_ad2').innerText);
+        const totalClicksToday = clicksAd1 + clicksAd2;
+        const adLimitPerButton = parseInt("{{ ad_limit_per_button }}");
+        const adTotalLimit = parseInt("{{ ad_total_limit }}");
+
+        if (totalClicksToday >= adTotalLimit) {
+            alert('You have reached your daily ad click limit ({{ ad_total_limit }} total).');
+            return;
+        }
+
+        if (adType === 'popunder1' && clicksAd1 >= adLimitPerButton) {
+            alert('You have reached the daily limit for Popunder Ad 1 ({{ ad_limit_per_button }} clicks).');
+            return;
+        } else if (adType === 'popunder2' && clicksAd2 >= adLimitPerButton) {
+            alert('You have reached the daily limit for Popunder Ad 2 ({{ ad_limit_per_button }} clicks).');
+            return;
+        }
+
+        const script = document.createElement("script");
+        script.src = scriptUrl;
+        script.async = true;
+
+        script.onload = () => {
+            console.log("Ad loaded successfully!");
+
+            fetch("/api/add_balance", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ad_type: adType })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        alert("Error: " + data.error);
+                    } else {
+                        alert("Balance updated: " + data.new_balance.toFixed(3));
+                        // Update displayed balance and click counters
+                        document.querySelector('.balance-amount').innerText = data.new_balance.toFixed(3) + ' USD';
+                        if (adType === 'popunder1') {
+                            document.getElementById('clicks_ad1').innerText = clicksAd1 + 1;
+                        } else if (adType === 'popunder2') {
+                            document.getElementById('clicks_ad2').innerText = clicksAd2 + 1;
+                        }
+                        document.querySelector('.total-clicks').innerText = `Total clicks today: ${totalClicksToday + 1} / ${adTotalLimit}`;
+                    }
+                })
+                .catch(err => {
+                    console.error("Error updating balance:", err);
+                    alert("An error occurred while updating your balance. Please try again.");
+                });
+        };
+
+        script.onerror = () => {
+            alert("Ad failed to load. Please try again.");
+        };
+
+        document.body.appendChild(script);
+    }
+
+    document.getElementById("ad1").addEventListener("click", () => {
+        showAd("popunder1", "//pl27588635.revenuecpmgate.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.js");
+    });
+
+    document.getElementById("ad2").addEventListener("click", () => {
+        showAd("popunder2", "//pl27623329.revenuecpmgate.com/3f/1b/ae/3f1bae06be8fb8243633dd02aa28465b.js");
+    });
+
+    function copyReferralLink() {
+        var copyText = document.querySelector(".referral-link-input");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); /* For mobile devices */
+        document.execCommand("copy");
+        alert("Referral link copied to clipboard!");
+    }
+</script>
+{% endblock %}

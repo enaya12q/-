@@ -1,31 +1,14 @@
 {
-    "rewrites": [
-        {
-            "source": "/api/(.*)",
-            "destination": "/api"
-        },
-        {
-            "source": "/auth/callback",
-            "destination": "/smart-coin-frontend/auth/callback"
-        },
-        {
-            "source": "/(.*)",
-            "destination": "/smart-coin-frontend/$1"
-        }
-    ],
     "builds": [
         {
-            "src": "smart-coin-frontend/package.json",
-            "use": "@vercel/next"
-        },
+            "src": "api/index.py",
+            "use": "@vercel/python"
+        }
+    ],
+    "routes": [
         {
-            "src": "smart-coin-backend/server.js",
-            "use": "@vercel/node",
-            "config": {
-                "includeFiles": [
-                    "smart-coin-backend/**"
-                ]
-            }
+            "src": "/(.*)",
+            "dest": "api/index.py"
         }
     ]
 }

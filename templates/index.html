@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <h2>Welcome to Smart Lab</h2>
+    <p>Please <a href="{{ url_for('login') }}">login</a> or <a href="{{ url_for('signup') }}">signup</a> to continue.
+    </p>
+</div>
+{% endblock %}
