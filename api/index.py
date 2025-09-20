@@ -7,13 +7,14 @@ import uuid
 import smtplib
 from email.mime.text import MIMEText
 from werkzeug.security import generate_password_hash, check_password_hash
+from urllib.parse import urlparse
 
 # Adjust template_folder and static_folder for Vercel deployment
 app = Flask(__name__, template_folder="../templates", static_folder="../static")
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'super_secret_key_for_dev')
 
 # Supabase PostgreSQL Configuration
-app.config['DATABASE_URL'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhteHl3b2Zzc29hdGpqdGhndWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyODk1OTYsImV4cCI6MjA3Mzg2NTU5Nn0.VVuLUrjBZAfTFE3k165_JmXK-qsH31yMuSPN6mLBj94@db.xmxywofssoatjjthgugu.supabase.co:5432/postgres')
+app.config['DATABASE_URL'] = os.environ.get('DATABASE_URL')
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -24,7 +25,16 @@ ADMIN_EMAIL = 'enayabasmaji9@gmail.com'
 
 def get_db():
     if 'db' not in g:
-        g.db = psycopg2.connect(app.config['DATABASE_URL'])
+        database_url = app.config['DATABASE_URL']
+        print(f"DEBUG: DATABASE_URL = {database_url}") # Temporary logging for debugging
+        url = urlparse(database_url)
+        g.db = psycopg2.connect(
+            host=url.hostname,
+            port=url.port,
+            user=url.username,
+            password=url.password,
+            database=url.path[1:] # Remove leading '/'
+        )
         g.db.autocommit = True # Ensure changes are committed immediately
     return g.db
 
@@ -105,7 +115,7 @@ def signup():
         cursor.execute('SELECT id FROM users WHERE email = %s', (email,))
         existing_user = cursor.fetchone()
         cursor.close()
-        if existing_user:
+        if existing_user is not None:
             flash('Email already registered.', 'error')
             return render_template('signup.html', email=email)
 
@@ -118,8 +128,12 @@ def signup():
                 'INSERT INTO users (email, password_hash, balance, referrer_id, verification_token, is_verified) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id',
                 (email, password_hash, 0.0, referrer_id, verification_token, 0)
             )
-            user_id = cursor.fetchone()[0]
+            user_id_row = cursor.fetchone()
             cursor.close()
+            if user_id_row is None:
+                flash('Registration failed, please try again.', 'error')
+                return render_template('signup.html', email=email)
+            user_id = user_id_row[0]
 
             send_verification_email(email, verification_token)
             flash('A verification email has been sent to your inbox. Please verify your email to activate your account.', 'info')
@@ -132,14 +146,14 @@ def signup():
     return render_template('signup.html')
 
 @app.route('/verify_email/<token>')
-def verify_email(token):
+def verify_email(token: str):
     db = get_db()
     cursor = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
     cursor.execute('SELECT id FROM users WHERE verification_token = %s', (token,))
     user = cursor.fetchone()
     cursor.close()
 
-    if user:
+    if user is not None:
         cursor = db.cursor()
         cursor.execute('UPDATE users SET is_verified = 1, verification_token = NULL WHERE id = %s', (user['id'],))
         cursor.close()
@@ -148,7 +162,7 @@ def verify_email(token):
         flash('Invalid or expired verification link.', 'error')
     return redirect(url_for('login'))
 
-def send_verification_email(email, token):
+def send_verification_email(email: str, token: str):
     verification_link = url_for('verify_email', token=token, _external=True)
     msg = MIMEText(f'Please click the following link to verify your email: {verification_link}')
     msg['Subject'] = 'Verify your Smart Lab account'
@@ -156,9 +170,9 @@ def send_verification_email(email, token):
     msg['To'] = email
 
     try:
-        with smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT']) as server:
+        with smtplib.SMTP(str(app.config['MAIL_SERVER']), int(app.config['MAIL_PORT'])) as server:
             server.starttls()
-            server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+            server.login(str(app.config['MAIL_USERNAME']), str(app.config['MAIL_PASSWORD']))
             server.send_message(msg)
     except Exception as e:
         print(f"Error sending verification email: {e}")
@@ -179,8 +193,8 @@ def login():
         user = cursor.fetchone()
         cursor.close()
 
-        if user and check_password_hash(user['password_hash'], password):
-            if user['is_verified']:
+        if user and isinstance(user, dict) and 'password_hash' in user and check_password_hash(user['password_hash'], password):
+            if user.get('is_verified'):
                 session['user_id'] = user['id']
                 flash('Logged in successfully!', 'success')
                 return redirect(url_for('dashboard'))
@@ -220,10 +234,11 @@ def dashboard():
     clicks_ad1 = 0
     clicks_ad2 = 0
     for click in ad_clicks_today:
-        if click['ad_type'] == 'popunder1':
-            clicks_ad1 = click['count']
-        elif click['ad_type'] == 'popunder2':
-            clicks_ad2 = click['count']
+        if isinstance(click, dict):
+            if click.get('ad_type') == 'popunder1':
+                clicks_ad1 = click.get('count', 0)
+            elif click.get('ad_type') == 'popunder2':
+                clicks_ad2 = click.get('count', 0)
 
     total_clicks_today = clicks_ad1 + clicks_ad2
 
@@ -247,7 +262,7 @@ def add_balance():
 
     user_id = g.user['id']
     data = request.json
-    ad_type = data.get("ad_type")
+    ad_type = data.get("ad_type") if data else None
 
     if not ad_type:
         return jsonify({"error": "Ad type is required"}), 400
@@ -261,7 +276,8 @@ def add_balance():
         'SELECT COUNT(*) FROM ad_clicks WHERE user_id = %s AND ad_type = %s AND date = %s',
         (user_id, ad_type, today)
     )
-    clicks_for_ad_type = cursor.fetchone()[0]
+    clicks_for_ad_type_row = cursor.fetchone()
+    clicks_for_ad_type = clicks_for_ad_type_row[0] if clicks_for_ad_type_row else 0
 
     if clicks_for_ad_type >= 25:
         cursor.close()
@@ -272,7 +288,8 @@ def add_balance():
         'SELECT COUNT(*) FROM ad_clicks WHERE user_id = %s AND date = %s',
         (user_id, today)
     )
-    total_clicks_today = cursor.fetchone()[0]
+    total_clicks_today_row = cursor.fetchone()
+    total_clicks_today = total_clicks_today_row[0] if total_clicks_today_row else 0
 
     if total_clicks_today >= 50:
         cursor.close()
@@ -284,7 +301,8 @@ def add_balance():
         cursor.execute("INSERT INTO ad_clicks (user_id, ad_type, date) VALUES (%s, %s, %s)", (user_id, ad_type, today))
         
         cursor.execute("SELECT balance FROM users WHERE id=%s", (user_id,))
-        new_balance = cursor.fetchone()[0]
+        new_balance_row = cursor.fetchone()
+        new_balance = new_balance_row[0] if new_balance_row else 0.0
         cursor.close()
         return jsonify({"new_balance": new_balance, "message": f"You earned {amount:.3f} USD from {ad_type}!"})
     except Exception as e:
@@ -322,7 +340,7 @@ def withdraw():
             
 
             # Handle referral commission
-            if g.user['referrer_id']:
+            if g.user.get('referrer_id'):
                 referrer_id = g.user['referrer_id']
                 commission_amount = amount * 0.05 # 5% commission
                 cursor.execute('UPDATE users SET balance = balance + %s WHERE id = %s', (commission_amount, referrer_id))
@@ -339,16 +357,16 @@ def withdraw():
 
     return render_template('withdraw.html', balance=g.user['balance'])
 
-def send_withdrawal_notification(user_id, user_email, amount):
+def send_withdrawal_notification(user_id: int, user_email: str, amount: float):
     msg = MIMEText(f'User ID: {user_id}\nEmail: {user_email}\nAmount: {amount:.2f} USD')
     msg['Subject'] = 'New Withdrawal Request - Smart Lab'
     msg['From'] = app.config['MAIL_USERNAME']
     msg['To'] = ADMIN_EMAIL
 
     try:
-        with smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT']) as server:
+        with smtplib.SMTP(str(app.config['MAIL_SERVER']), int(app.config['MAIL_PORT'])) as server:
             server.starttls()
-            server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+            server.login(str(app.config['MAIL_USERNAME']), str(app.config['MAIL_PASSWORD']))
             server.send_message(msg)
     except Exception as e:
         print(f"Error sending withdrawal notification email: {e}")
