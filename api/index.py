@@ -1,20 +1,18 @@
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash, g, jsonify
-import psycopg2
-import psycopg2.extras # For DictRow
+import sqlite3
 import os
 from datetime import datetime, timedelta
 import uuid
 import smtplib
 from email.mime.text import MIMEText
 from werkzeug.security import generate_password_hash, check_password_hash
-from urllib.parse import urlparse
 
 # Adjust template_folder and static_folder for Vercel deployment
 app = Flask(__name__, template_folder="../templates", static_folder="../static")
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'super_secret_key_for_dev')
 
-# Supabase PostgreSQL Configuration
-app.config['DATABASE_URL'] = os.environ.get('DATABASE_URL')
+
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -25,17 +23,8 @@ ADMIN_EMAIL = 'enayabasmaji9@gmail.com'
 
 def get_db():
     if 'db' not in g:
-        database_url = app.config['DATABASE_URL']
-        print(f"DEBUG: DATABASE_URL = {database_url}") # Temporary logging for debugging
-        url = urlparse(database_url)
-        g.db = psycopg2.connect(
-            host=url.hostname,
-            port=url.port,
-            user=url.username,
-            password=url.password,
-            database=url.path[1:] # Remove leading '/'
-        )
-        g.db.autocommit = True # Ensure changes are committed immediately
+        g.db = sqlite3.connect('users.db')
+        g.db.row_factory = sqlite3.Row
     return g.db
 
 @app.teardown_appcontext
@@ -47,11 +36,16 @@ def close_db(e=None):
 def init_db():
     with app.app_context():
         db = get_db()
-        cursor = db.cursor()
-        schema_path = os.path.join(app.root_path, '..', 'schema.sql')
-        with open(schema_path, mode='r') as f:
-            cursor.execute(f.read())
-        db.commit() # Commit changes after executing schema
+        db.execute('''CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            balance REAL DEFAULT 0.0,
+            referrer_id INTEGER,
+            verification_token TEXT,
+            is_verified INTEGER DEFAULT 0
+        )''')
+        db.commit()
 
 # Initialize the database when the app starts, if tables don't exist
 with app.app_context():
@@ -71,10 +65,8 @@ def before_request():
     g.user = None
     if 'user_id' in session:
         db = get_db()
-        cursor = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+        cursor = db.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],))
         user = cursor.fetchone()
-        cursor.close()
         if user:
             g.user = user
         else:
@@ -111,10 +103,8 @@ def signup():
             return render_template('signup.html', email=email)
 
         db = get_db()
-        cursor = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute('SELECT id FROM users WHERE email = %s', (email,))
+        cursor = db.execute('SELECT id FROM users WHERE email = ?', (email,))
         existing_user = cursor.fetchone()
-        cursor.close()
         if existing_user is not None:
             flash('Email already registered.', 'error')
             return render_template('signup.html', email=email)
@@ -123,23 +113,15 @@ def signup():
         verification_token = str(uuid.uuid4())
 
         try:
-            cursor = db.cursor()
-            cursor.execute(
-                'INSERT INTO users (email, password_hash, balance, referrer_id, verification_token, is_verified) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id',
+            db.execute(
+                'INSERT INTO users (email, password_hash, balance, referrer_id, verification_token, is_verified) VALUES (?, ?, ?, ?, ?, ?)',
                 (email, password_hash, 0.0, referrer_id, verification_token, 0)
             )
-            user_id_row = cursor.fetchone()
-            cursor.close()
-            if user_id_row is None:
-                flash('Registration failed, please try again.', 'error')
-                return render_template('signup.html', email=email)
-            user_id = user_id_row[0]
-
+            db.commit()
             send_verification_email(email, verification_token)
             flash('A verification email has been sent to your inbox. Please verify your email to activate your account.', 'info')
             return redirect(url_for('login'))
-        except psycopg2.IntegrityError as e:
-            db.rollback()
+        except sqlite3.IntegrityError as e:
             flash(f'An error occurred during registration: {e}. Please try again.', 'error')
             return render_template('signup.html', email=email)
 
@@ -148,15 +130,12 @@ def signup():
 @app.route('/verify_email/<token>')
 def verify_email(token: str):
     db = get_db()
-    cursor = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cursor.execute('SELECT id FROM users WHERE verification_token = %s', (token,))
+    cursor = db.execute('SELECT id FROM users WHERE verification_token = ?', (token,))
     user = cursor.fetchone()
-    cursor.close()
 
     if user is not None:
-        cursor = db.cursor()
-        cursor.execute('UPDATE users SET is_verified = 1, verification_token = NULL WHERE id = %s', (user['id'],))
-        cursor.close()
+        db.execute('UPDATE users SET is_verified = 1, verification_token = NULL WHERE id = ?', (user['id'],))
+        db.commit()
         flash('Your email has been successfully verified! You can now log in.', 'success')
     else:
         flash('Invalid or expired verification link.', 'error')
@@ -188,13 +167,11 @@ def login():
         password = request.form['password']
 
         db = get_db()
-        cursor = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+        cursor = db.execute('SELECT * FROM users WHERE email = ?', (email,))
         user = cursor.fetchone()
-        cursor.close()
 
-        if user and isinstance(user, dict) and 'password_hash' in user and check_password_hash(user['password_hash'], password):
-            if user.get('is_verified'):
+        if user and check_password_hash(user['password_hash'], password):
+            if user['is_verified']:
                 session['user_id'] = user['id']
                 flash('Logged in successfully!', 'success')
                 return redirect(url_for('dashboard'))
@@ -219,26 +196,22 @@ def dashboard():
         return redirect(url_for('login'))
 
     db = get_db()
-    cursor = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
     user_id = g.user['id']
     user_balance = g.user['balance']
 
     today = datetime.now().strftime('%Y-%m-%d')
-    cursor.execute(
-        'SELECT ad_type, COUNT(*) as count FROM ad_clicks WHERE user_id = %s AND date = %s GROUP BY ad_type',
+    ad_clicks_today = db.execute(
+        'SELECT ad_type, COUNT(*) as count FROM ad_clicks WHERE user_id = ? AND date = ? GROUP BY ad_type',
         (user_id, today)
-    )
-    ad_clicks_today = cursor.fetchall()
-    cursor.close()
+    ).fetchall()
 
     clicks_ad1 = 0
     clicks_ad2 = 0
     for click in ad_clicks_today:
-        if isinstance(click, dict):
-            if click.get('ad_type') == 'popunder1':
-                clicks_ad1 = click.get('count', 0)
-            elif click.get('ad_type') == 'popunder2':
-                clicks_ad2 = click.get('count', 0)
+        if click['ad_type'] == 'popunder1':
+            clicks_ad1 = click['count']
+        elif click['ad_type'] == 'popunder2':
+            clicks_ad2 = click['count']
 
     total_clicks_today = clicks_ad1 + clicks_ad2
 
@@ -268,46 +241,37 @@ def add_balance():
         return jsonify({"error": "Ad type is required"}), 400
 
     db = get_db()
-    cursor = db.cursor()
     today = datetime.now().strftime('%Y-%m-%d')
 
     # Check daily limit for the specific ad type
-    cursor.execute(
-        'SELECT COUNT(*) FROM ad_clicks WHERE user_id = %s AND ad_type = %s AND date = %s',
+    clicks_for_ad_type_row = db.execute(
+        'SELECT COUNT(*) FROM ad_clicks WHERE user_id = ? AND ad_type = ? AND date = ?',
         (user_id, ad_type, today)
-    )
-    clicks_for_ad_type_row = cursor.fetchone()
+    ).fetchone()
     clicks_for_ad_type = clicks_for_ad_type_row[0] if clicks_for_ad_type_row else 0
 
     if clicks_for_ad_type >= 25:
-        cursor.close()
         return jsonify({"error": f"Daily limit reached for {ad_type}"}), 403
 
     # Check total daily limit
-    cursor.execute(
-        'SELECT COUNT(*) FROM ad_clicks WHERE user_id = %s AND date = %s',
+    total_clicks_today_row = db.execute(
+        'SELECT COUNT(*) FROM ad_clicks WHERE user_id = ? AND date = ?',
         (user_id, today)
-    )
-    total_clicks_today_row = cursor.fetchone()
+    ).fetchone()
     total_clicks_today = total_clicks_today_row[0] if total_clicks_today_row else 0
 
     if total_clicks_today >= 50:
-        cursor.close()
         return jsonify({"error": "Total daily ad click limit reached (50 total)."}), 403
 
     try:
         amount = 0.001
-        cursor.execute("UPDATE users SET balance = balance + %s WHERE id=%s", (amount, user_id))
-        cursor.execute("INSERT INTO ad_clicks (user_id, ad_type, date) VALUES (%s, %s, %s)", (user_id, ad_type, today))
-        
-        cursor.execute("SELECT balance FROM users WHERE id=%s", (user_id,))
-        new_balance_row = cursor.fetchone()
+        db.execute("UPDATE users SET balance = balance + ? WHERE id=?", (amount, user_id))
+        db.execute("INSERT INTO ad_clicks (user_id, ad_type, date) VALUES (?, ?, ?)", (user_id, ad_type, today))
+        db.commit()
+        new_balance_row = db.execute("SELECT balance FROM users WHERE id=?", (user_id,)).fetchone()
         new_balance = new_balance_row[0] if new_balance_row else 0.0
-        cursor.close()
         return jsonify({"new_balance": new_balance, "message": f"You earned {amount:.3f} USD from {ad_type}!"})
     except Exception as e:
-        db.rollback()
-        cursor.close()
         return jsonify({"error": f"An error occurred: {e}"}), 500
 
 # --- Withdrawal System ---
@@ -334,25 +298,21 @@ def withdraw():
             return render_template('withdraw.html', balance=g.user['balance'])
 
         db = get_db()
-        cursor = db.cursor()
         try:
-            cursor.execute('UPDATE users SET balance = balance - %s WHERE id = %s', (amount, g.user['id']))
-            
+            db.execute('UPDATE users SET balance = balance - ? WHERE id = ?', (amount, g.user['id']))
 
             # Handle referral commission
-            if g.user.get('referrer_id'):
+            if g.user['referrer_id']:
                 referrer_id = g.user['referrer_id']
                 commission_amount = amount * 0.05 # 5% commission
-                cursor.execute('UPDATE users SET balance = balance + %s WHERE id = %s', (commission_amount, referrer_id))
+                db.execute('UPDATE users SET balance = balance + ? WHERE id = ?', (commission_amount, referrer_id))
                 flash(f'Referrer (ID: {referrer_id}) received {commission_amount:.3f} USD commission.', 'info')
 
+            db.commit()
             send_withdrawal_notification(g.user['id'], g.user['email'], amount)
-            cursor.close()
             flash(f'Withdrawal of {amount:.2f} USD successful! An admin will process your request.', 'success')
             return redirect(url_for('dashboard'))
         except Exception as e:
-            db.rollback()
-            cursor.close()
             flash(f'An error occurred during withdrawal: {e}', 'error')
 
     return render_template('withdraw.html', balance=g.user['balance'])
