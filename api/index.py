@@ -1,15 +1,16 @@
-# --- Imports and App Initialization ---
+
+# --- Imports ---
+import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash, g, jsonify
 import psycopg2
 import psycopg2.extras
-import os
 from datetime import datetime, timedelta
 import uuid
 import smtplib
 from email.mime.text import MIMEText
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# Adjust template_folder and static_folder for Vercel deployment
+# --- App Initialization ---
 app = Flask(__name__, template_folder="../templates", static_folder="../static")
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'super_secret_key_for_dev')
 
