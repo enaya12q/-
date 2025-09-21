@@ -1,11 +1,4 @@
-# --- Withdrawal Placeholder Route ---
-@app.route('/withdraw')
-def withdraw():
-    try:
-        return render_template('withdraw.html', message="Withdrawal page placeholder")
-    except Exception as e:
-        return f"Error loading withdrawal page: {str(e)}", 500
-
+# --- Imports and App Initialization ---
 from flask import Flask, render_template, request, redirect, url_for, session, flash, g, jsonify
 import psycopg2
 import psycopg2.extras
@@ -20,14 +13,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__, template_folder="../templates", static_folder="../static")
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'super_secret_key_for_dev')
 
-
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
+# --- Email Config ---
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'enayabasmaji9@gmail.com'
-app.config['MAIL_PASSWORD'] = 'yymu fxwr hnws yzxu' # App password
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'enayabasmaji9@gmail.com')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'yymu fxwr hnws yzxu') # App password
 
-ADMIN_EMAIL = 'enayabasmaji9@gmail.com'
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'enayabasmaji9@gmail.com')
 
 def get_db():
     if 'db' not in g:
@@ -36,13 +29,6 @@ def get_db():
             cursor_factory=psycopg2.extras.RealDictCursor
         )
     return g.db
-    def get_db():
-        if 'db' not in g:
-            g.db = psycopg2.connect(
-                os.environ.get('DATABASE_URL'),
-                cursor_factory=psycopg2.extras.RealDictCursor
-            )
-        return g.db
 
 @app.teardown_appcontext
 def close_db(e=None):
@@ -232,9 +218,9 @@ def dashboard():
 
         db = get_db()
         user_id = g.user.get('id')
-        user_balance = g.user.get('balance')
-        if user_id is None or user_balance is None:
-            logging.error(f"user_id or user_balance is None: user_id={user_id}, user_balance={user_balance}")
+        user_balance = g.user.get('balance', 0)
+        if user_id is None:
+            logging.error(f"user_id is None: user_id={user_id}")
             return render_template('dashboard.html', balance=0, error="User info missing. Please log in again.")
 
         today = datetime.now().strftime('%Y-%m-%d')
@@ -271,97 +257,39 @@ def dashboard():
         )
     except Exception as e:
         logging.error(f"Exception in /dashboard: {e}", exc_info=True)
-        return render_template('dashboard.html', error=f"Internal error: {str(e)}")
+        return render_template('dashboard.html', balance=0, error=f"Internal error: {str(e)}")
 
-@app.route("/api/add_balance", methods=["POST"])
-def add_balance():
-    if not g.user:
-        return jsonify({"error": "Not logged in"}), 401
-
-    user_id = g.user['id']
-    data = request.json
-    ad_type = data.get("ad_type") if data else None
-
-    if not ad_type:
-        return jsonify({"error": "Ad type is required"}), 400
-
-    db = get_db()
-    today = datetime.now().strftime('%Y-%m-%d')
-    cursor = db.cursor()
-
-    # Check daily limit for the specific ad type
-    db = get_db()
-    today = datetime.now().strftime('%Y-%m-%d')
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    try:
-        # Check daily limit for the specific ad type
-        cursor.execute(
-            'SELECT COUNT(*) AS count FROM ad_clicks WHERE user_id = %s AND ad_type = %s AND date = %s',
-            (user_id, ad_type, today)
-        )
-        clicks_for_ad_type_row = cursor.fetchone()
-        clicks_for_ad_type = clicks_for_ad_type_row['count'] if clicks_for_ad_type_row else 0
-
-        if clicks_for_ad_type >= 25:
-            cursor.close()
-            return jsonify({"error": f"Daily limit reached for {ad_type}"}), 403
-
-        # Check total daily limit
-        cursor.execute(
-            'SELECT COUNT(*) AS count FROM ad_clicks WHERE user_id = %s AND date = %s',
-            (user_id, today)
-        )
-        total_clicks_today_row = cursor.fetchone()
-        total_clicks_today = total_clicks_today_row['count'] if total_clicks_today_row else 0
-
-        if total_clicks_today >= 50:
-            cursor.close()
-            return jsonify({"error": "Total daily ad click limit reached (50 total)."}), 403
-
-        amount = 0.001
-        cursor.execute("UPDATE users SET balance = balance + %s WHERE id=%s", (amount, user_id))
-        cursor.execute("INSERT INTO ad_clicks (user_id, ad_type, date) VALUES (%s, %s, %s)", (user_id, ad_type, today))
-        db.commit()
-        cursor.execute("SELECT balance FROM users WHERE id=%s", (user_id,))
-        new_balance_row = cursor.fetchone()
-        new_balance = new_balance_row['balance'] if new_balance_row else 0.0
-        cursor.close()
-        return jsonify({"new_balance": new_balance, "message": f"You earned {amount:.3f} USD from {ad_type}!"})
-    except Exception as e:
-        db.rollback()
-        cursor.close()
-        return jsonify({"error": f"An error occurred: {e}"}), 500
+# --- Withdrawal Route ---
+@app.route('/withdraw', methods=['GET', 'POST'])
+def withdraw():
     if not g.user:
         return redirect(url_for('login'))
-
+    db = get_db()
     if request.method == 'POST':
-        amount_str = request.form['amount']
+        amount_str = request.form.get('amount')
         try:
             amount = float(amount_str)
-        except ValueError:
+        except (ValueError, TypeError):
             flash('Invalid amount. Please enter a number.', 'error')
-            return render_template('withdraw.html', balance=g.user['balance'])
+            return render_template('withdraw.html', balance=g.user.get('balance', 0))
 
         if amount < 0.5:
             flash('Minimum withdrawal amount is 0.5 USD.', 'error')
-            return render_template('withdraw.html', balance=g.user['balance'])
+            return render_template('withdraw.html', balance=g.user.get('balance', 0))
 
-        if g.user['balance'] < amount:
+        if g.user.get('balance', 0) < amount:
             flash('Insufficient balance.', 'error')
-            return render_template('withdraw.html', balance=g.user['balance'])
+            return render_template('withdraw.html', balance=g.user.get('balance', 0))
 
-        db = get_db()
         cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         try:
             cursor.execute('UPDATE users SET balance = balance - %s WHERE id = %s', (amount, g.user['id']))
-
             # Handle referral commission
-            if g.user['referrer_id']:
+            if g.user.get('referrer_id'):
                 referrer_id = g.user['referrer_id']
                 commission_amount = amount * 0.05 # 5% commission
                 cursor.execute('UPDATE users SET balance = balance + %s WHERE id = %s', (commission_amount, referrer_id))
                 flash(f'Referrer (ID: {referrer_id}) received {commission_amount:.3f} USD commission.', 'info')
-
             db.commit()
             send_withdrawal_notification(g.user['id'], g.user['email'], amount)
             flash(f'Withdrawal of {amount:.2f} USD successful! An admin will process your request.', 'success')
@@ -371,8 +299,8 @@ def add_balance():
             db.rollback()
             flash(f'An error occurred during withdrawal: {e}', 'error')
             cursor.close()
-
-    return render_template('withdraw.html', balance=g.user['balance'])
+    # GET request
+    return render_template('withdraw.html', balance=g.user.get('balance', 0))
 
 def send_withdrawal_notification(user_id: int, user_email: str, amount: float):
     msg = MIMEText(f'User ID: {user_id}\nEmail: {user_email}\nAmount: {amount:.2f} USD')
