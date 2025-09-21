@@ -209,44 +209,62 @@ def logout():
 
 @app.route('/dashboard')
 def dashboard():
-    if not g.user:
-        return redirect(url_for('login'))
+    import logging
+    try:
+        # تحقق من متغيرات البيئة المهمة
+        missing_envs = []
+        for env_var in ['DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_ANON_KEY']:
+            if not os.environ.get(env_var):
+                missing_envs.append(env_var)
+        if missing_envs:
+            logging.error(f"Missing environment variables: {missing_envs}")
 
-    db = get_db()
-    user_id = g.user['id']
-    user_balance = g.user['balance']
+        if not g.user:
+            logging.error("g.user is None (user not logged in)")
+            return redirect(url_for('login'))
 
-    today = datetime.now().strftime('%Y-%m-%d')
-    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cursor.execute(
-        'SELECT ad_type, COUNT(*) AS count FROM ad_clicks WHERE user_id = %s AND date = %s GROUP BY ad_type',
-        (user_id, today)
-    )
-    ad_clicks_today = cursor.fetchall()
+        db = get_db()
+        user_id = g.user.get('id')
+        user_balance = g.user.get('balance')
+        if user_id is None or user_balance is None:
+            logging.error(f"user_id or user_balance is None: user_id={user_id}, user_balance={user_balance}")
+            return render_template('dashboard.html', error="User info missing. Please log in again.")
 
-    clicks_ad1 = 0
-    clicks_ad2 = 0
-    for click in ad_clicks_today:
-        if click['ad_type'] == 'popunder1':
-            clicks_ad1 = click['count']
-        elif click['ad_type'] == 'popunder2':
-            clicks_ad2 = click['count']
+        today = datetime.now().strftime('%Y-%m-%d')
+        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cursor.execute(
+            'SELECT ad_type, COUNT(*) AS count FROM ad_clicks WHERE user_id = %s AND date = %s GROUP BY ad_type',
+            (user_id, today)
+        )
+        ad_clicks_today = cursor.fetchall()
 
-    total_clicks_today = clicks_ad1 + clicks_ad2
+        clicks_ad1 = 0
+        clicks_ad2 = 0
+        for click in ad_clicks_today:
+            if click.get('ad_type') == 'popunder1':
+                clicks_ad1 = click.get('count', 0)
+            elif click.get('ad_type') == 'popunder2':
+                clicks_ad2 = click.get('count', 0)
 
-    referral_link = url_for('signup', ref=user_id, _external=True)
-    cursor.close()
+        total_clicks_today = clicks_ad1 + clicks_ad2
 
-    return render_template(
-        'dashboard.html',
-        balance=user_balance,
-        clicks_ad1=clicks_ad1,
-        clicks_ad2=clicks_ad2,
-        total_clicks_today=total_clicks_today,
-        referral_link=referral_link,
-        ad_limit_per_button=25,
-        ad_total_limit=50
-    )
+        referral_link = url_for('signup', ref=user_id, _external=True)
+        cursor.close()
+
+        return render_template(
+            'dashboard.html',
+            balance=user_balance,
+            clicks_ad1=clicks_ad1,
+            clicks_ad2=clicks_ad2,
+            total_clicks_today=total_clicks_today,
+            referral_link=referral_link,
+            ad_limit_per_button=25,
+            ad_total_limit=50,
+            error=None
+        )
+    except Exception as e:
+        logging.error(f"Exception in /dashboard: {e}", exc_info=True)
+        return render_template('dashboard.html', error=f"Internal error: {str(e)}")
 
 @app.route("/api/add_balance", methods=["POST"])
 def add_balance():
