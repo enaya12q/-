@@ -1,3 +1,10 @@
+# --- Withdrawal Placeholder Route ---
+@app.route('/withdraw')
+def withdraw():
+    try:
+        return render_template('withdraw.html', message="Withdrawal page placeholder")
+    except Exception as e:
+        return f"Error loading withdrawal page: {str(e)}", 500
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, g, jsonify
 import psycopg2
@@ -228,7 +235,7 @@ def dashboard():
         user_balance = g.user.get('balance')
         if user_id is None or user_balance is None:
             logging.error(f"user_id or user_balance is None: user_id={user_id}, user_balance={user_balance}")
-            return render_template('dashboard.html', error="User info missing. Please log in again.")
+            return render_template('dashboard.html', balance=0, error="User info missing. Please log in again.")
 
         today = datetime.now().strftime('%Y-%m-%d')
         cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
