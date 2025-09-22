@@ -190,7 +190,7 @@
         <div id="container-07a0ea3dee3fc93775251a64a297df45"></div>
     </div>
     <script type="text/javascript">
-        // إعداد عداد النقرات من localStorage
+        // عداد النقرات من localStorage
         let clicksAd1 = parseInt(localStorage.getItem('clicks_ad1') || '0');
         let clicksAd2 = parseInt(localStorage.getItem('clicks_ad2') || '0');
         document.getElementById('clicks_ad1').innerText = clicksAd1;
@@ -217,8 +217,8 @@
                 alert('وصلت للحد الأقصى لنقرات هذا الإعلان اليوم');
                 return;
             }
-            // فتح نافذة جديدة بدون شريط أدوات
-            let adWindow;
+            // فتح نافذة منبثقة
+            let adWindow = null;
             try {
                 adWindow = window.open(ad.url, '_blank', 'width=400,height=400,toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1');
                 if (!adWindow) throw new Error('تم حظر النافذة من المتصفح أو مانع الإعلانات');
@@ -226,7 +226,7 @@
                 alert('تعذر فتح الإعلان. يرجى تعطيل مانع الإعلانات أو السماح بالنوافذ المنبثقة.');
                 return;
             }
-            // مراقبة النافذة لمدة 30 ثانية
+            // عداد الوقت في الصفحة الرئيسية
             let seconds = 30;
             const btn = document.getElementById(adType === 'popunder1' ? 'ad1' : 'ad2');
             btn.disabled = true;
@@ -234,7 +234,7 @@
             let timer = setInterval(() => {
                 seconds--;
                 btn.innerText = `جارٍ مشاهدة الإعلان... (${seconds})`;
-                // إذا أغلق المستخدم النافذة قبل انتهاء الوقت، لا يتم احتساب المكافأة
+                // تحقق إذا النافذة أغلقت قبل انتهاء الوقت
                 if (adWindow.closed) {
                     clearInterval(timer);
                     btn.disabled = false;
