@@ -113,6 +113,16 @@
             text-align: center;
             margin-top: 10px;
         }
+
+        .ad-counters {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .ad-counters span {
+            color: #00ffff;
+            font-weight: bold;
+        }
     </style>
 </head>
 
@@ -139,15 +149,35 @@
     <div id="ad-modal" class="ad-modal" style="display:none;">
         <div class="ad-modal-content">
             <span id="ad-modal-close" class="ad-modal-close">&times;</span>
-            <h3>Watch the Ad</h3>
+            <h3>مشاهدة الإعلان</h3>
             <div id="ad-modal-script"></div>
             <div id="ad-timer">40</div>
             <div id="ad-modal-message"></div>
         </div>
     </div>
+    <div class="ad-counters" style="text-align:center;margin:20px 0;">
+        <span>عدد نقرات إعلان 1: <span id="clicks_ad1">0</span> / 25</span> |
+        <span>عدد نقرات إعلان 2: <span id="clicks_ad2">0</span> / 25</span>
+    </div>
 
     <script type="text/javascript">
+        // إعداد عداد النقرات من localStorage
+        let clicksAd1 = parseInt(localStorage.getItem('clicks_ad1') || '0');
+        let clicksAd2 = parseInt(localStorage.getItem('clicks_ad2') || '0');
+        document.getElementById('clicks_ad1').innerText = clicksAd1;
+        document.getElementById('clicks_ad2').innerText = clicksAd2;
+
         function showAdModal(adType, adUrl) {
+            // تحقق من الحد الأقصى للنقرات
+            if (adType === 'popunder1' && clicksAd1 >= 25) {
+                alert('وصلت للحد الأقصى لنقرات إعلان 1');
+                return;
+            }
+            if (adType === 'popunder2' && clicksAd2 >= 25) {
+                alert('وصلت للحد الأقصى لنقرات إعلان 2');
+                return;
+            }
+            // عرض المنبثق
             const modal = document.getElementById('ad-modal');
             const modalScript = document.getElementById('ad-modal-script');
             const modalTimer = document.getElementById('ad-timer');
@@ -162,7 +192,7 @@
                 modalTimer.innerText = seconds;
                 if (seconds <= 0) {
                     clearInterval(timer);
-                    // After timer, call backend to add balance
+                    // بعد انتهاء العداد، أرسل طلب احتساب المكافأة
                     fetch("/api/add_balance", {
                         method: "POST",
                         headers: {
@@ -173,26 +203,43 @@
                         .then(res => res.json())
                         .then(data => {
                             if (data.error) {
-                                modalMsg.innerHTML = `<span style='color:red;'>Error: ${data.error}</span>`;
+                                modalMsg.innerHTML = `<span style='color:red;'>خطأ: ${data.error}</span>`;
                             } else {
-                                modalMsg.innerHTML = `<span style='color:green;'>Balance updated: ${data.new_balance.toFixed(3)} USD</span>`;
+                                modalMsg.innerHTML = `<span style='color:green;'>تم تحديث الرصيد: ${data.new_balance.toFixed(3)} USD</span>`;
+                                // زيادة عداد النقرات
+                                if (adType === 'popunder1') {
+                                    clicksAd1++;
+                                    localStorage.setItem('clicks_ad1', clicksAd1);
+                                    document.getElementById('clicks_ad1').innerText = clicksAd1;
+                                } else if (adType === 'popunder2') {
+                                    clicksAd2++;
+                                    localStorage.setItem('clicks_ad2', clicksAd2);
+                                    document.getElementById('clicks_ad2').innerText = clicksAd2;
+                                }
                             }
                         })
                         .catch(err => {
-                            modalMsg.innerHTML = `<span style='color:red;'>Error updating balance.</span>`;
+                            modalMsg.innerHTML = `<span style='color:red;'>خطأ في تحديث الرصيد.</span>`;
                         });
-                    // Close modal automatically
+                    // إغلاق المنبثق تلقائيًا
                     setTimeout(() => {
                         modal.style.display = 'none';
                     }, 1000);
                 }
             }, 1000);
-            // Close modal logic
+            // زر إغلاق المنبثق
             document.getElementById('ad-modal-close').onclick = function () {
                 modal.style.display = 'none';
                 clearInterval(timer);
             };
         }
+        // ربط الأزرار بالأحداث
+        document.getElementById('ad1').addEventListener('click', function () {
+            showAdModal('popunder1', 'https://pl27588635.revenuecpmgate.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.html');
+        });
+        document.getElementById('ad2').addEventListener('click', function () {
+            showAdModal('popunder2', 'https://pl27623329.revenuecpmgate.com/3f/1b/ae/3f1bae06be8fb8243633dd02aa28465b.html');
+        });
     </script>
 </body>
 
