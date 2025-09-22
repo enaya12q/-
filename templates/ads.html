@@ -123,11 +123,37 @@
             color: #00ffff;
             font-weight: bold;
         }
+
+        /* Social bar and banner styles */
+        #social-bar,
+        #main-banner {
+            width: 100%;
+            background: #222;
+            padding: 0;
+            margin: 0;
+            position: fixed;
+            left: 0;
+            z-index: 9999;
+        }
+
+        #social-bar {
+            top: 0;
+        }
+
+        #main-banner {
+            bottom: 0;
+        }
     </style>
 </head>
 
 <body>
-    <div class="ads-page-container">
+    <!-- شريط اجتماعي مثبت أعلى الصفحة -->
+    <div id="social-bar"
+        style="width:100%;background:#222;padding:0;margin:0;position:fixed;top:0;left:0;z-index:9999;">
+        <script type='text/javascript'
+            src='//pl27202122.revenuecpmgate.com/24/3e/ee/243eee94c6a0fa1cf865b310d6ade1eb.js'></script>
+    </div>
+    <div class="ads-page-container" style="margin-top:60px;">
         <h2>صفحة الإعلانات</h2>
         <div class="ad-list">
             <div class="ad-item">
@@ -156,6 +182,13 @@
         <span>عدد نقرات إعلان 2: <span id="clicks_ad2">0</span> / 25</span>
     </div>
 
+    <!-- لافتة أصلية أسفل الموقع -->
+    <div id="main-banner"
+        style="width:100%;background:#222;padding:0;margin:0;position:fixed;bottom:0;left:0;z-index:9999;">
+        <script async="async" data-cfasync="false"
+            src="//honorablegiven.com/07a0ea3dee3fc93775251a64a297df45/invoke.js"></script>
+        <div id="container-07a0ea3dee3fc93775251a64a297df45"></div>
+    </div>
     <script type="text/javascript">
         // إعداد عداد النقرات من localStorage
         let clicksAd1 = parseInt(localStorage.getItem('clicks_ad1') || '0');
@@ -163,17 +196,17 @@
         document.getElementById('clicks_ad1').innerText = clicksAd1;
         document.getElementById('clicks_ad2').innerText = clicksAd2;
 
-        // إعداد روابط وسكربتات الإعلانات
+        // تحديث روابط وسكربتات الإعلانات
         const adsConfig = {
             popunder1: {
-                url: 'https://pl27588635.revenuecpmgate.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.html',
-                script: '//pl27588635.revenuecpmgate.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.js',
+                url: '', // لا حاجة للـ iframe هنا
+                script: "//pl27202088.revenuecpmgate.com/1c/28/ce/1c28cea4764a32c6ff51305841262340.js",
                 counterId: 'clicks_ad1',
                 maxClicks: 25
             },
             popunder2: {
-                url: 'https://pl27623329.revenuecpmgate.com/3f/1b/ae/3f1bae06be8fb8243633dd02aa28465b.html',
-                script: '//pl27623329.revenuecpmgate.com/3f/1b/ae/3f1bae06be8fb8243633dd02aa28465b.js',
+                url: '',
+                script: "//honorablegiven.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.js",
                 counterId: 'clicks_ad2',
                 maxClicks: 25
             }
@@ -192,8 +225,12 @@
             const modalTimer = document.getElementById('ad-timer');
             const modalMsg = document.getElementById('ad-modal-message');
             modal.style.display = 'block';
-            // تحميل سكربت الإعلان داخل iframe
-            modalScript.innerHTML = `<iframe src="${ad.url}" width="320" height="180" style="border:none;"></iframe>`;
+            // تحميل سكربت الإعلان داخل المنبثق
+            modalScript.innerHTML = '';
+            const adScript = document.createElement('script');
+            adScript.src = ad.script;
+            adScript.async = true;
+            modalScript.appendChild(adScript);
             modalMsg.innerHTML = '';
             let seconds = 40;
             modalTimer.innerText = seconds;
