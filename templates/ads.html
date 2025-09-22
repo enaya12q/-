@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الإعلانات | Smart Lab</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .ads-page-container {
+            max-width: 700px;
+            margin: 40px auto;
+            background: #222;
+            border-radius: 12px;
+            box-shadow: 0 0 20px #00ffff;
+            padding: 30px 25px;
+        }
+
+        .ads-page-container h2 {
+            color: #ffd700;
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .ad-list {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .ad-item {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 10px #00ffff33;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ad-title {
+            color: #00ffff;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .ad-btn {
+            background-color: #ffd700;
+            color: #1a1a1a;
+            padding: 10px 22px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            box-shadow: 0 0 10px #ffd70088;
+            transition: background-color 0.3s;
+        }
+
+        .ad-btn:hover {
+            background-color: #ffea00;
+        }
+
+        /* Modal styles */
+        .ad-modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0, 0, 0);
+            background-color: rgba(0, 0, 0, 0.4);
+            display: none;
+        }
+
+        .ad-modal-content {
+            background-color: #222;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #00ffff;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            position: relative;
+        }
+
+        .ad-modal-close {
+            color: #fff;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .ad-modal-close:hover,
+        .ad-modal-close:focus {
+            color: #ffd700;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #ad-timer {
+            color: #ffd700;
+            font-size: 1.5em;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        #ad-modal-message {
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ads-page-container">
+        <h2>صفحة الإعلانات</h2>
+        <div class="ad-list">
+            <div class="ad-item">
+                <span class="ad-title">Popunder Ad 1</span>
+                <button class="ad-btn"
+                    onclick="showAdModal('popunder1', 'https://pl27588635.revenuecpmgate.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.html')">مشاهدة
+                    الإعلان</button>
+            </div>
+            <div class="ad-item">
+                <span class="ad-title">Popunder Ad 2</span>
+                <button class="ad-btn"
+                    onclick="showAdModal('popunder2', 'https://pl27623329.revenuecpmgate.com/3f/1b/ae/3f1bae06be8fb8243633dd02aa28465b.html')">مشاهدة
+                    الإعلان</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Ad Viewing -->
+    <div id="ad-modal" class="ad-modal" style="display:none;">
+        <div class="ad-modal-content">
+            <span id="ad-modal-close" class="ad-modal-close">&times;</span>
+            <h3>Watch the Ad</h3>
+            <div id="ad-modal-script"></div>
+            <div id="ad-timer">40</div>
+            <div id="ad-modal-message"></div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        function showAdModal(adType, adUrl) {
+            const modal = document.getElementById('ad-modal');
+            const modalScript = document.getElementById('ad-modal-script');
+            const modalTimer = document.getElementById('ad-timer');
+            const modalMsg = document.getElementById('ad-modal-message');
+            modal.style.display = 'block';
+            modalScript.innerHTML = `<iframe src="${adUrl}" width="320" height="180" style="border:none;"></iframe>`;
+            modalMsg.innerHTML = '';
+            let seconds = 40;
+            modalTimer.innerText = seconds;
+            let timer = setInterval(() => {
+                seconds--;
+                modalTimer.innerText = seconds;
+                if (seconds <= 0) {
+                    clearInterval(timer);
+                    // After timer, call backend to add balance
+                    fetch("/api/add_balance", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ ad_type: adType })
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.error) {
+                                modalMsg.innerHTML = `<span style='color:red;'>Error: ${data.error}</span>`;
+                            } else {
+                                modalMsg.innerHTML = `<span style='color:green;'>Balance updated: ${data.new_balance.toFixed(3)} USD</span>`;
+                            }
+                        })
+                        .catch(err => {
+                            modalMsg.innerHTML = `<span style='color:red;'>Error updating balance.</span>`;
+                        });
+                    // Close modal automatically
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                    }, 1000);
+                }
+            }, 1000);
+            // Close modal logic
+            document.getElementById('ad-modal-close').onclick = function () {
+                modal.style.display = 'none';
+                clearInterval(timer);
+            };
+        }
+    </script>
+</body>
+
+</html>
