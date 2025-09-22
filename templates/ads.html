@@ -166,15 +166,10 @@
                 return;
             }
 
-            // إنشاء محتوى HTML للـ iframe
-            const iframeContent = `
-                <html>
-                <head><style>body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }</style></head>
-                <body><script type="text/javascript" src="${ad.script}"><\/script></body>
-                </html>
-            `;
+            // استخدام صفحة ad_frame.html كوسيط
+            const adUrl = `/ad_frame.html?script=${encodeURIComponent(ad.script)}`;
+            iframe.src = adUrl;
 
-            iframe.srcdoc = iframeContent;
             modal.style.display = 'block';
 
             let seconds = 30;
@@ -208,7 +203,7 @@
                 body: JSON.stringify({ ad_type: currentAd })
             })
                 .then(res => res.json())
-                .then(data => {
+                .then data => {
                     if (data.error) {
                         alert('خطأ: ' + data.error);
                     } else {
@@ -224,13 +219,13 @@
                         }
                     }
                 })
-                .catch(err => {
-                    console.error('Balance update error:', err);
-                    alert('حدث خطأ أثناء تحديث الرصيد.');
-                })
+                .catch (err => {
+                console.error('Balance update error:', err);
+                alert('حدث خطأ أثناء تحديث الرصيد.');
+            })
                 .finally(() => {
-                    closeAdModal();
-                });
+                closeAdModal();
+            });
         }
 
         // إغلاق النافذة عند الضغط خارجها

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Ad Container</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <script type="text/javascript">
+        // احصل على رابط السكربت من عنوان الصفحة
+        const urlParams = new URLSearchParams(window.location.search);
+        const adScriptSrc = urlParams.get('script');
+
+        if (adScriptSrc) {
+            // قم بإنشاء وإضافة سكربت الإعلان إلى الصفحة
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = decodeURIComponent(adScriptSrc);
+            document.body.appendChild(script);
+        }
+    </script>
+</body>
+
+</html>
