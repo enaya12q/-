@@ -1,5 +1,52 @@
 {% extends "base.html" %}
+{% block head %}
+<style>
+    .ad-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
+    .ad-modal-content {
+        background: #222;
+        padding: 30px 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 20px #00ffff;
+        text-align: center;
+        min-width: 320px;
+        max-width: 90vw;
+        position: relative;
+    }
+
+    .ad-modal-close {
+        position: absolute;
+        top: 10px;
+        right: 20px;
+        font-size: 2em;
+        color: #fff;
+        cursor: pointer;
+    }
+
+    #ad-timer {
+        font-size: 2em;
+        margin: 15px 0;
+        color: #ffd700;
+        font-weight: bold;
+    }
+
+    #ad-modal-message {
+        margin-top: 10px;
+        font-size: 1.1em;
+    }
+</style>
+{% endblock %}
 {% block content %}
 <div class="dashboard-container">
     <h2>Dashboard</h2>
