@@ -69,6 +69,11 @@ def before_request():
         user = cursor.fetchone()
         if user:
             g.user = user
+            # ضبط متغير الجلسة في PostgreSQL لدعم RLS
+            try:
+                cursor.execute("SET app.current_user_id = %s", (str(user['id']),))
+            except Exception as e:
+                print(f"Error setting session variable: {e}")
         else:
             session.pop('user_id', None)
             g.user = None
