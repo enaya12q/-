@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>الإعلانات | Smart Lab</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block head %}
     <style>
         .ads-page-container {
             max-width: 700px;
@@ -144,9 +145,11 @@
             bottom: 0;
         }
     </style>
+    {% endblock %}
 </head>
 
 <body>
+    {% block content %}
     <!-- شريط اجتماعي مثبت أعلى الصفحة -->
     <div id="social-bar"
         style="width:100%;background:#222;padding:0;margin:0;position:fixed;top:0;left:0;z-index:9999;">
@@ -164,17 +167,6 @@
                 <span class="ad-title">Popunder Ad 2</span>
                 <button class="ad-btn" id="ad2" type="button">مشاهدة الإعلان</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Modal for Ad Viewing -->
-    <div id="ad-modal" class="ad-modal" style="display:none;">
-        <div class="ad-modal-content">
-            <span id="ad-modal-close" class="ad-modal-close">&times;</span>
-            <h3>مشاهدة الإعلان</h3>
-            <div id="ad-modal-script"></div>
-            <div id="ad-timer">40</div>
-            <div id="ad-modal-message"></div>
         </div>
     </div>
     <div class="ad-counters" style="text-align:center;margin:20px 0;">
@@ -217,11 +209,11 @@
                 alert('وصلت للحد الأقصى لنقرات هذا الإعلان اليوم');
                 return;
             }
-            // فتح نافذة منبثقة كبيرة في وسط الشاشة
-            const width = Math.max(window.screen.width * 0.8, 900);
-            const height = Math.max(window.screen.height * 0.8, 600);
-            const left = (window.screen.width - width) / 2;
-            const top = (window.screen.height - height) / 2;
+            // فتح نافذة منبثقة كبيرة في وسط الشاشة (قياسات ثابتة)
+            const width = 1200;
+            const height = 700;
+            const left = Math.max(0, (window.screen.width - width) / 2);
+            const top = Math.max(0, (window.screen.height - height) / 2);
             let adWindow = null;
             try {
                 adWindow = window.open(
@@ -234,6 +226,15 @@
                 alert('تعذر فتح الإعلان. يرجى تعطيل مانع الإعلانات أو السماح بالنوافذ المنبثقة.');
                 return;
             }
+            // تحقق من حجم النافذة بعد الفتح (بعض المتصفحات تتجاهل القياسات)
+            setTimeout(() => {
+                try {
+                    if (adWindow.outerWidth < 800 || adWindow.outerHeight < 500) {
+                        adWindow.focus();
+                        alert('يرجى تكبير نافذة الإعلان يدويًا للحصول على تجربة أفضل.');
+                    }
+                } catch (e) { }
+            }, 1000);
             // عداد الوقت في الصفحة الرئيسية
             let seconds = 30;
             const btn = document.getElementById(adType === 'popunder1' ? 'ad1' : 'ad2');
@@ -286,6 +287,7 @@
             openAdWindow('popunder2');
         });
     </script>
+    {% endblock %}
 </body>
 
 </html>
