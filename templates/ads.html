@@ -196,116 +196,90 @@
         document.getElementById('clicks_ad1').innerText = clicksAd1;
         document.getElementById('clicks_ad2').innerText = clicksAd2;
 
-        // تحديث روابط وسكربتات الإعلانات
+        // إعداد روابط الإعلانات
         const adsConfig = {
             popunder1: {
-                url: '', // لا حاجة للـ iframe هنا
-                script: "//pl27202088.revenuecpmgate.com/1c/28/ce/1c28cea4764a32c6ff51305841262340.js",
+                url: 'https://pl27202088.revenuecpmgate.com/1c/28/ce/1c28cea4764a32c6ff51305841262340.html',
                 counterId: 'clicks_ad1',
                 maxClicks: 25
             },
             popunder2: {
-                url: '',
-                script: "//honorablegiven.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.js",
+                url: 'https://honorablegiven.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.html',
                 counterId: 'clicks_ad2',
                 maxClicks: 25
             }
         };
 
-        function showAdModal(adType) {
+        function openAdWindow(adType) {
             const ad = adsConfig[adType];
             let clicks = parseInt(localStorage.getItem(ad.counterId) || '0');
             if (clicks >= ad.maxClicks) {
                 alert('وصلت للحد الأقصى لنقرات هذا الإعلان اليوم');
                 return;
             }
-            // عرض المنبثق
-            const modal = document.getElementById('ad-modal');
-            const modalScript = document.getElementById('ad-modal-script');
-            const modalTimer = document.getElementById('ad-timer');
-            const modalMsg = document.getElementById('ad-modal-message');
-            modal.style.display = 'block';
-            // تحميل سكربت الإعلان داخل المنبثق
-            modalScript.innerHTML = '';
-            const adScript = document.createElement('script');
-            adScript.src = ad.script;
-            adScript.async = true;
-            modalScript.appendChild(adScript);
-            modalMsg.innerHTML = '';
-            let seconds = 40;
-            modalTimer.innerText = seconds;
-            // تعطيل الزر أثناء المشاهدة
+            // فتح نافذة جديدة بدون شريط أدوات
+            let adWindow;
+            try {
+                adWindow = window.open(ad.url, '_blank', 'width=400,height=400,toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1');
+                if (!adWindow) throw new Error('تم حظر النافذة من المتصفح أو مانع الإعلانات');
+            } catch (e) {
+                alert('تعذر فتح الإعلان. يرجى تعطيل مانع الإعلانات أو السماح بالنوافذ المنبثقة.');
+                return;
+            }
+            // مراقبة النافذة لمدة 30 ثانية
+            let seconds = 30;
             const btn = document.getElementById(adType === 'popunder1' ? 'ad1' : 'ad2');
             btn.disabled = true;
+            btn.innerText = `جارٍ مشاهدة الإعلان... (${seconds})`;
             let timer = setInterval(() => {
                 seconds--;
-                modalTimer.innerText = seconds;
+                btn.innerText = `جارٍ مشاهدة الإعلان... (${seconds})`;
+                // إذا أغلق المستخدم النافذة قبل انتهاء الوقت، لا يتم احتساب المكافأة
+                if (adWindow.closed) {
+                    clearInterval(timer);
+                    btn.disabled = false;
+                    btn.innerText = 'مشاهدة الإعلان';
+                    alert('يجب إبقاء نافذة الإعلان مفتوحة لمدة 30 ثانية للحصول على المكافأة.');
+                    return;
+                }
                 if (seconds <= 0) {
                     clearInterval(timer);
-                    // احتساب الرصيد حسب عدد المشاهدات
-                    let reward = clicks === 0 ? 0.001 : 0.0009;
+                    adWindow.close();
+                    // احتساب المكافأة
                     fetch("/api/add_balance", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ ad_type: adType, reward: reward })
+                        body: JSON.stringify({ ad_type: adType })
                     })
                         .then(res => res.json())
                         .then(data => {
                             if (data.error) {
-                                modalMsg.innerHTML = `<span style='color:red;'>خطأ: ${data.error}</span>`;
+                                alert('خطأ: ' + data.error);
                             } else {
-                                modalMsg.innerHTML = `<span style='color:green;'>تم تحديث الرصيد: ${data.new_balance.toFixed(3)} USD</span>`;
                                 // زيادة عداد النقرات
                                 clicks++;
                                 localStorage.setItem(ad.counterId, clicks);
                                 document.getElementById(ad.counterId).innerText = clicks;
+                                btn.disabled = false;
+                                btn.innerText = 'مشاهدة الإعلان';
+                                alert('تم تحديث رصيدك بنجاح!');
                             }
                         })
                         .catch(err => {
-                            modalMsg.innerHTML = `<span style='color:red;'>خطأ في تحديث الرصيد.</span>`;
+                            alert('خطأ في تحديث الرصيد.');
+                            btn.disabled = false;
+                            btn.innerText = 'مشاهدة الإعلان';
                         });
-                    // إغلاق المنبثق تلقائيًا
-                    setTimeout(() => {
-                        modal.style.display = 'none';
-                        btn.disabled = false;
-                    }, 1000);
                 }
             }, 1000);
-            // زر إغلاق المنبثق
-            document.getElementById('ad-modal-close').onclick = function () {
-                modal.style.display = 'none';
-                clearInterval(timer);
-                btn.disabled = false;
-            };
         }
-        // ربط الأزرار مباشرة بكود الإعلان الجديد
+        // ربط الأزرار بالأحداث
         document.getElementById('ad1').addEventListener('click', function () {
-            console.log('Ad1 button clicked');
-            const script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = '//pl27202088.revenuecpmgate.com/1c/28/ce/1c28cea4764a32c6ff51305841262340.js';
-            script.async = true;
-            document.body.appendChild(script);
+            openAdWindow('popunder1');
         });
         document.getElementById('ad2').addEventListener('click', function () {
-            console.log('Ad2 button clicked');
-            const script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = '//honorablegiven.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.js';
-            script.async = true;
-            document.body.appendChild(script);
+            openAdWindow('popunder2');
         });
-        // مراقبة العناصر الديناميكية إذا لزم الأمر
-        const observer = new MutationObserver((mutationsList, observer) => {
-            mutationsList.forEach(mutation => {
-                mutation.addedNodes.forEach(node => {
-                    if (node.nodeType === 1 && node.matches && node.matches('.popunder-ad')) {
-                        console.log('Popunder ad element added:', node);
-                    }
-                });
-            });
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
     </script>
 </body>
 
