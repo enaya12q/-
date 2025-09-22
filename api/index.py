@@ -53,10 +53,14 @@ def add_balance():
     new_balance = balance_result['balance'] if balance_result and 'balance' in balance_result else None
     cursor.close()
     return jsonify({'new_balance': new_balance})
+
+def get_db():
+    if 'db' not in g:
         g.db = psycopg2.connect(
             os.environ.get('DATABASE_URL'),
             cursor_factory=psycopg2.extras.RealDictCursor
         )
+    return g.db
     return g.db
 
 @app.teardown_appcontext
