@@ -158,11 +158,11 @@
         <div class="ad-list">
             <div class="ad-item">
                 <span class="ad-title">Popunder Ad 1</span>
-                <button class="ad-btn" id="ad1">مشاهدة الإعلان</button>
+                <button class="ad-btn" id="ad1" type="button">مشاهدة الإعلان</button>
             </div>
             <div class="ad-item">
                 <span class="ad-title">Popunder Ad 2</span>
-                <button class="ad-btn" id="ad2">مشاهدة الإعلان</button>
+                <button class="ad-btn" id="ad2" type="button">مشاهدة الإعلان</button>
             </div>
         </div>
     </div>
@@ -278,13 +278,34 @@
                 btn.disabled = false;
             };
         }
-        // ربط الأزرار بالأحداث
+        // ربط الأزرار مباشرة بكود الإعلان الجديد
         document.getElementById('ad1').addEventListener('click', function () {
-            showAdModal('popunder1');
+            console.log('Ad1 button clicked');
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = '//pl27202088.revenuecpmgate.com/1c/28/ce/1c28cea4764a32c6ff51305841262340.js';
+            script.async = true;
+            document.body.appendChild(script);
         });
         document.getElementById('ad2').addEventListener('click', function () {
-            showAdModal('popunder2');
+            console.log('Ad2 button clicked');
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = '//honorablegiven.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.js';
+            script.async = true;
+            document.body.appendChild(script);
         });
+        // مراقبة العناصر الديناميكية إذا لزم الأمر
+        const observer = new MutationObserver((mutationsList, observer) => {
+            mutationsList.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === 1 && node.matches && node.matches('.popunder-ad')) {
+                        console.log('Popunder ad element added:', node);
+                    }
+                });
+            });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
     </script>
 </body>
 
