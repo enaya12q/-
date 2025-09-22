@@ -241,6 +241,60 @@
             showAdModal('popunder2', 'https://pl27623329.revenuecpmgate.com/3f/1b/ae/3f1bae06be8fb8243633dd02aa28465b.html');
         });
     </script>
+    <script type="text/javascript">
+        // ✅ ربط إعلانات RevenueCPM مع الأزرار
+        document.addEventListener("DOMContentLoaded", () => {
+            const adButtons = [
+                {
+                    id: "ad1",
+                    scriptSrc: "//pl27588635.revenuecpmgate.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.js",
+                    counterId: "clicks_ad1",
+                },
+                {
+                    id: "ad2",
+                    scriptSrc: "//pl27623329.revenuecpmgate.com/3f/1b/ae/3f1bae06be8fb8243633dd02aa28465b.js",
+                    counterId: "clicks_ad2",
+                },
+            ];
+
+            adButtons.forEach(({ id, scriptSrc, counterId }) => {
+                const btn = document.getElementById(id);
+                const counterEl = document.getElementById(counterId);
+
+                if (!btn || !counterEl) return;
+
+                btn.addEventListener("click", () => {
+                    // ✅ تحميل سكربت الإعلان ديناميكياً
+                    const adScript = document.createElement("script");
+                    adScript.src = scriptSrc;
+                    adScript.async = true;
+                    document.body.appendChild(adScript);
+
+                    // ✅ عداد 40 ثانية
+                    btn.disabled = true;
+                    btn.innerText = `جارٍ مشاهدة الإعلان... (40)`;
+                    let seconds = 40;
+
+                    const interval = setInterval(() => {
+                        seconds--;
+                        btn.innerText = `جارٍ مشاهدة الإعلان... (${seconds})`;
+                        if (seconds <= 0) {
+                            clearInterval(interval);
+                            btn.disabled = false;
+                            btn.innerText = `Click for Popunder ${id.toUpperCase()}`;
+
+                            // ✅ تحديث العداد
+                            let clicks = parseInt(counterEl.innerText) || 0;
+                            counterEl.innerText = clicks + 1;
+
+                            // هنا يمكن إرسال طلب لتحديث النقاط في الباكند
+                            // fetch("/api/update-points", { method: "POST", body: JSON.stringify({ userId, ad: id }) });
+                        }
+                    }, 1000);
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>
