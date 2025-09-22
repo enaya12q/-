@@ -244,6 +244,7 @@ def dashboard():
                 missing_envs.append(env_var)
         if missing_envs:
             logging.error(f"Missing environment variables: {missing_envs}")
+            return render_template('dashboard.html', balance=0, error=f"خطأ في الإعدادات: متغيرات البيئة التالية ناقصة: {', '.join(missing_envs)}")
 
         if not g.user:
             logging.error("g.user is None (user not logged in)")
@@ -254,7 +255,7 @@ def dashboard():
         user_balance = g.user.get('balance', 0)
         if user_id is None:
             logging.error(f"user_id is None: user_id={user_id}")
-            return render_template('dashboard.html', balance=0, error="User info missing. Please log in again.")
+            return render_template('dashboard.html', balance=0, error="خطأ في بيانات المستخدم: يرجى تسجيل الدخول من جديد.")
 
         today = datetime.now().strftime('%Y-%m-%d')
         cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
