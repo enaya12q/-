@@ -1,4 +1,26 @@
-from flask import abort
+import os
+import psycopg2
+import psycopg2.extras
+from datetime import datetime, timedelta
+import uuid
+import smtplib
+from email.mime.text import MIMEText
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, g, jsonify, abort
+
+# --- App Initialization ---
+app = Flask(__name__, template_folder="../templates", static_folder="../static")
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'super_secret_key_for_dev')
+
+# --- Email Config ---
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'enayabasmaji9@gmail.com')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'yymu fxwr hnws yzxu') # App password
+
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'enayabasmaji9@gmail.com')
+
 # --- Ad Balance API ---
 @app.route('/api/add_balance', methods=['POST'])
 def add_balance():
@@ -31,33 +53,6 @@ def add_balance():
     new_balance = balance_result['balance'] if balance_result and 'balance' in balance_result else None
     cursor.close()
     return jsonify({'new_balance': new_balance})
-
-# --- Imports ---
-import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash, g, jsonify
-import psycopg2
-import psycopg2.extras
-from datetime import datetime, timedelta
-import uuid
-import smtplib
-from email.mime.text import MIMEText
-from werkzeug.security import generate_password_hash, check_password_hash
-
-# --- App Initialization ---
-app = Flask(__name__, template_folder="../templates", static_folder="../static")
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'super_secret_key_for_dev')
-
-# --- Email Config ---
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'enayabasmaji9@gmail.com')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'yymu fxwr hnws yzxu') # App password
-
-ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'enayabasmaji9@gmail.com')
-
-def get_db():
-    if 'db' not in g:
         g.db = psycopg2.connect(
             os.environ.get('DATABASE_URL'),
             cursor_factory=psycopg2.extras.RealDictCursor
