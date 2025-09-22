@@ -48,6 +48,11 @@
 </style>
 {% endblock %}
 {% block content %}
+{% if error %}
+<div
+    style="background:#fee;color:#900;padding:10px;border-radius:6px;margin-bottom:15px;font-family:monospace;white-space:pre-wrap;direction:ltr">
+    {{ error|safe }}</div>
+{% endif %}
 <div class="dashboard-container">
     <h2>Dashboard</h2>
     <div class="balance-info">
