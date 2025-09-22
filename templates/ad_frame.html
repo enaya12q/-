@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Ad Container</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' https: 'unsafe-inline'; frame-ancestors 'none';">
     <style>
         body,
         html {
@@ -18,6 +19,15 @@
 
 <body>
     <script type="text/javascript">
+        // Defensive overrides: prevent popups and parent navigation
+        try {
+            window.open = function() { console.warn('window.open blocked'); return null; };
+            window.top = window;
+            window.parent = window;
+            window.location.replace = function() { console.warn('navigation blocked'); };
+            window.postMessage = function() { console.warn('postMessage blocked'); };
+        } catch (e) { console.warn('defensive overrides failed', e); }
+
         // احصل على رابط السكربت من عنوان الصفحة
         const urlParams = new URLSearchParams(window.location.search);
         const adScriptSrc = urlParams.get('script');
@@ -27,6 +37,8 @@
             const script = document.createElement('script');
             script.type = 'text/javascript';
             script.src = decodeURIComponent(adScriptSrc);
+            script.async = true;
+            script.onerror = function(e) { console.error('ad script failed to load', e); };
             document.body.appendChild(script);
         }
     </script>

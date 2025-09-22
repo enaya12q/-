@@ -124,7 +124,7 @@
         <div class="modal-content">
             <span class="close-btn" onclick="closeAdModal()">&times;</span>
             <h3 id="modal-title">مشاهدة الإعلان</h3>
-            <iframe id="ad-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+            <iframe id="ad-iframe" sandbox="allow-scripts"></iframe>
             <div id="modal-timer">30</div>
         </div>
     </div>
@@ -188,7 +188,7 @@
         function closeAdModal() {
             clearInterval(countdown);
             modal.style.display = 'none';
-            iframe.srcdoc = ''; // تفريغ المحتوى
+            iframe.src = ''; // تفريغ المحتوى
             currentAd = null;
         }
 
@@ -203,7 +203,7 @@
                 body: JSON.stringify({ ad_type: currentAd })
             })
                 .then(res => res.json())
-                .then data => {
+                .then(data => {
                     if (data.error) {
                         alert('خطأ: ' + data.error);
                     } else {
@@ -214,18 +214,18 @@
                         alert('تم تحديث رصيدك بنجاح!');
                         // تحديث الرصيد في الواجهة الرئيسية إذا كان ظاهرًا
                         const balanceElement = document.getElementById('balance');
-                        if (balanceElement) {
+                        if (balanceElement && typeof data.new_balance === 'number') {
                             balanceElement.innerText = data.new_balance.toFixed(2);
                         }
                     }
                 })
-                .catch (err => {
-                console.error('Balance update error:', err);
-                alert('حدث خطأ أثناء تحديث الرصيد.');
-            })
+                .catch(err => {
+                    console.error('Balance update error:', err);
+                    alert('حدث خطأ أثناء تحديث الرصيد.');
+                })
                 .finally(() => {
-                closeAdModal();
-            });
+                    closeAdModal();
+                });
         }
 
         // إغلاق النافذة عند الضغط خارجها
