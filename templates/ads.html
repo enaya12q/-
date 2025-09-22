@@ -167,14 +167,27 @@
         document.getElementById('clicks_ad1').innerText = clicksAd1;
         document.getElementById('clicks_ad2').innerText = clicksAd2;
 
-        function showAdModal(adType, adUrl) {
-            // تحقق من الحد الأقصى للنقرات
-            if (adType === 'popunder1' && clicksAd1 >= 25) {
-                alert('وصلت للحد الأقصى لنقرات إعلان 1');
-                return;
+        // إعداد روابط وسكربتات الإعلانات
+        const adsConfig = {
+            popunder1: {
+                url: 'https://pl27588635.revenuecpmgate.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.html',
+                script: '//pl27588635.revenuecpmgate.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.js',
+                counterId: 'clicks_ad1',
+                maxClicks: 25
+            },
+            popunder2: {
+                url: 'https://pl27623329.revenuecpmgate.com/3f/1b/ae/3f1bae06be8fb8243633dd02aa28465b.html',
+                script: '//pl27623329.revenuecpmgate.com/3f/1b/ae/3f1bae06be8fb8243633dd02aa28465b.js',
+                counterId: 'clicks_ad2',
+                maxClicks: 25
             }
-            if (adType === 'popunder2' && clicksAd2 >= 25) {
-                alert('وصلت للحد الأقصى لنقرات إعلان 2');
+        };
+
+        function showAdModal(adType) {
+            const ad = adsConfig[adType];
+            let clicks = parseInt(localStorage.getItem(ad.counterId) || '0');
+            if (clicks >= ad.maxClicks) {
+                alert('وصلت للحد الأقصى لنقرات هذا الإعلان اليوم');
                 return;
             }
             // عرض المنبثق
@@ -183,22 +196,25 @@
             const modalTimer = document.getElementById('ad-timer');
             const modalMsg = document.getElementById('ad-modal-message');
             modal.style.display = 'block';
-            modalScript.innerHTML = `<iframe src="${adUrl}" width="320" height="180" style="border:none;"></iframe>`;
+            // تحميل سكربت الإعلان داخل iframe
+            modalScript.innerHTML = `<iframe src="${ad.url}" width="320" height="180" style="border:none;"></iframe>`;
             modalMsg.innerHTML = '';
             let seconds = 40;
             modalTimer.innerText = seconds;
+            // تعطيل الزر أثناء المشاهدة
+            const btn = document.getElementById(adType === 'popunder1' ? 'ad1' : 'ad2');
+            btn.disabled = true;
             let timer = setInterval(() => {
                 seconds--;
                 modalTimer.innerText = seconds;
                 if (seconds <= 0) {
                     clearInterval(timer);
-                    // بعد انتهاء العداد، أرسل طلب احتساب المكافأة
+                    // احتساب الرصيد حسب عدد المشاهدات
+                    let reward = clicks === 0 ? 0.001 : 0.0009;
                     fetch("/api/add_balance", {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({ ad_type: adType })
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ ad_type: adType, reward: reward })
                     })
                         .then(res => res.json())
                         .then(data => {
@@ -207,15 +223,9 @@
                             } else {
                                 modalMsg.innerHTML = `<span style='color:green;'>تم تحديث الرصيد: ${data.new_balance.toFixed(3)} USD</span>`;
                                 // زيادة عداد النقرات
-                                if (adType === 'popunder1') {
-                                    clicksAd1++;
-                                    localStorage.setItem('clicks_ad1', clicksAd1);
-                                    document.getElementById('clicks_ad1').innerText = clicksAd1;
-                                } else if (adType === 'popunder2') {
-                                    clicksAd2++;
-                                    localStorage.setItem('clicks_ad2', clicksAd2);
-                                    document.getElementById('clicks_ad2').innerText = clicksAd2;
-                                }
+                                clicks++;
+                                localStorage.setItem(ad.counterId, clicks);
+                                document.getElementById(ad.counterId).innerText = clicks;
                             }
                         })
                         .catch(err => {
@@ -224,6 +234,7 @@
                     // إغلاق المنبثق تلقائيًا
                     setTimeout(() => {
                         modal.style.display = 'none';
+                        btn.disabled = false;
                     }, 1000);
                 }
             }, 1000);
@@ -231,68 +242,15 @@
             document.getElementById('ad-modal-close').onclick = function () {
                 modal.style.display = 'none';
                 clearInterval(timer);
+                btn.disabled = false;
             };
         }
         // ربط الأزرار بالأحداث
         document.getElementById('ad1').addEventListener('click', function () {
-            showAdModal('popunder1', 'https://pl27588635.revenuecpmgate.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.html');
+            showAdModal('popunder1');
         });
         document.getElementById('ad2').addEventListener('click', function () {
-            showAdModal('popunder2', 'https://pl27623329.revenuecpmgate.com/3f/1b/ae/3f1bae06be8fb8243633dd02aa28465b.html');
-        });
-    </script>
-    <script type="text/javascript">
-        // ✅ ربط إعلانات RevenueCPM مع الأزرار
-        document.addEventListener("DOMContentLoaded", () => {
-            const adButtons = [
-                {
-                    id: "ad1",
-                    scriptSrc: "//pl27588635.revenuecpmgate.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.js",
-                    counterId: "clicks_ad1",
-                },
-                {
-                    id: "ad2",
-                    scriptSrc: "//pl27623329.revenuecpmgate.com/3f/1b/ae/3f1bae06be8fb8243633dd02aa28465b.js",
-                    counterId: "clicks_ad2",
-                },
-            ];
-
-            adButtons.forEach(({ id, scriptSrc, counterId }) => {
-                const btn = document.getElementById(id);
-                const counterEl = document.getElementById(counterId);
-
-                if (!btn || !counterEl) return;
-
-                btn.addEventListener("click", () => {
-                    // ✅ تحميل سكربت الإعلان ديناميكياً
-                    const adScript = document.createElement("script");
-                    adScript.src = scriptSrc;
-                    adScript.async = true;
-                    document.body.appendChild(adScript);
-
-                    // ✅ عداد 40 ثانية
-                    btn.disabled = true;
-                    btn.innerText = `جارٍ مشاهدة الإعلان... (40)`;
-                    let seconds = 40;
-
-                    const interval = setInterval(() => {
-                        seconds--;
-                        btn.innerText = `جارٍ مشاهدة الإعلان... (${seconds})`;
-                        if (seconds <= 0) {
-                            clearInterval(interval);
-                            btn.disabled = false;
-                            btn.innerText = `Click for Popunder ${id.toUpperCase()}`;
-
-                            // ✅ تحديث العداد
-                            let clicks = parseInt(counterEl.innerText) || 0;
-                            counterEl.innerText = clicks + 1;
-
-                            // هنا يمكن إرسال طلب لتحديث النقاط في الباكند
-                            // fetch("/api/update-points", { method: "POST", body: JSON.stringify({ userId, ad: id }) });
-                        }
-                    }, 1000);
-                });
-            });
+            showAdModal('popunder2');
         });
     </script>
 </body>
