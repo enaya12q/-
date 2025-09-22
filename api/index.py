@@ -1,3 +1,36 @@
+from flask import abort
+# --- Ad Balance API ---
+@app.route('/api/add_balance', methods=['POST'])
+def add_balance():
+    if not g.user:
+        return jsonify({'error': 'Not logged in'}), 401
+    data = request.get_json()
+    ad_type = data.get('ad_type')
+    if ad_type not in ['popunder1', 'popunder2']:
+        return jsonify({'error': 'Invalid ad type'}), 400
+
+    db = get_db()
+    user_id = g.user['id']
+    today = datetime.now().strftime('%Y-%m-%d')
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    # تحقق إذا كان المستخدم قد شاهد هذا الإعلان اليوم بالفعل
+    cursor.execute('SELECT COUNT(*) FROM ad_clicks WHERE user_id = %s AND ad_type = %s AND date = %s', (user_id, ad_type, today))
+
+    result = cursor.fetchone()
+    already_clicked = result['count'] if result and 'count' in result else 0
+    if already_clicked:
+        cursor.close()
+        return jsonify({'error': 'Already viewed this ad today'}), 400
+
+    # أضف سجل النقر
+    cursor.execute('INSERT INTO ad_clicks (user_id, ad_type, date) VALUES (%s, %s, %s)', (user_id, ad_type, today))
+    # أضف الرصيد (مثلاً 0.01 لكل إعلان)
+    cursor.execute('UPDATE users SET balance = balance + %s WHERE id = %s RETURNING balance', (0.01, user_id))
+    db.commit()
+    balance_result = cursor.fetchone()
+    new_balance = balance_result['balance'] if balance_result and 'balance' in balance_result else None
+    cursor.close()
+    return jsonify({'new_balance': new_balance})
 
 # --- Imports ---
 import os
