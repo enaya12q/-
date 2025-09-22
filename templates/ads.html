@@ -8,141 +8,34 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     {% block head %}
     <style>
-        .ads-page-container {
-            max-width: 700px;
-            margin: 40px auto;
-            background: #222;
-            border-radius: 12px;
-            box-shadow: 0 0 20px #00ffff;
-            padding: 30px 25px;
-        }
-
-        .ads-page-container h2 {
-            color: #ffd700;
-            font-family: 'Orbitron', sans-serif;
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        .ad-list {
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-        }
-
-        .ad-item {
-            background: #2a2a2a;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 0 10px #00ffff33;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .ad-title {
-            color: #00ffff;
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-
-        .ad-btn {
-            background-color: #ffd700;
-            color: #1a1a1a;
-            padding: 10px 22px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: bold;
-            box-shadow: 0 0 10px #ffd70088;
-            transition: background-color 0.3s;
-        }
-
-        .ad-btn:hover {
-            background-color: #ffea00;
-        }
-
-        /* Modal styles */
-        .ad-modal {
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgb(0, 0, 0);
-            background-color: rgba(0, 0, 0, 0.4);
-            display: none;
-        }
-
-        .ad-modal-content {
-            background-color: #222;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #00ffff;
-            border-radius: 8px;
-            width: 80%;
-            max-width: 600px;
-            position: relative;
-        }
-
-        .ad-modal-close {
-            color: #fff;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .ad-modal-close:hover,
-        .ad-modal-close:focus {
-            color: #ffd700;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        #ad-timer {
-            color: #ffd700;
-            font-size: 1.5em;
-            text-align: center;
-            margin: 15px 0;
-        }
-
-        #ad-modal-message {
-            text-align: center;
-            margin-top: 10px;
-        }
-
-        .ad-counters {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .ad-counters span {
-            color: #00ffff;
-            font-weight: bold;
-        }
-
-        /* Social bar and banner styles */
-        #social-bar,
-        #main-banner {
-            width: 100%;
-            background: #222;
-            padding: 0;
-            margin: 0;
+        /* ... (أنماط الأزرار والقائمة) ... */
+        #top-banner-ad,
+        #bottom-banner-ad {
             position: fixed;
             left: 0;
-            z-index: 9999;
+            width: 100%;
+            text-align: center;
+            background: #000;
+            z-index: 10000;
+            padding: 5px 0;
+            border-bottom: 1px solid #00ffff;
         }
 
-        #social-bar {
+        #top-banner-ad {
             top: 0;
         }
 
-        #main-banner {
+        #bottom-banner-ad {
             bottom: 0;
+            border-top: 1px solid #00ffff;
+            border-bottom: none;
+        }
+
+        .ads-page-container {
+            padding-top: 70px;
+            /* لإعطاء مساحة للإعلان العلوي */
+            padding-bottom: 70px;
+            /* لإعطاء مساحة للإعلان السفلي */
         }
     </style>
     {% endblock %}
@@ -150,13 +43,13 @@
 
 <body>
     {% block content %}
-    <!-- شريط اجتماعي مثبت أعلى الصفحة -->
-    <div id="social-bar"
-        style="width:100%;background:#222;padding:0;margin:0;position:fixed;top:0;left:0;z-index:9999;">
+    <!-- إعلان بانر علوي ثابت -->
+    <div id="top-banner-ad">
         <script type='text/javascript'
             src='//pl27202122.revenuecpmgate.com/24/3e/ee/243eee94c6a0fa1cf865b310d6ade1eb.js'></script>
     </div>
-    <div class="ads-page-container" style="margin-top:60px;">
+
+    <div class="ads-page-container">
         <h2>صفحة الإعلانات</h2>
         <div class="ad-list">
             <div class="ad-item">
@@ -169,18 +62,18 @@
             </div>
         </div>
     </div>
-    <div class="ad-counters" style="text-align:center;margin:20px 0;">
+    <div class="ad-counters">
         <span>عدد نقرات إعلان 1: <span id="clicks_ad1">0</span> / 25</span> |
         <span>عدد نقرات إعلان 2: <span id="clicks_ad2">0</span> / 25</span>
     </div>
 
-    <!-- لافتة أصلية أسفل الموقع -->
-    <div id="main-banner"
-        style="width:100%;background:#222;padding:0;margin:0;position:fixed;bottom:0;left:0;z-index:9999;">
+    <!-- إعلان لافتة سفلية ثابت -->
+    <div id="bottom-banner-ad">
         <script async="async" data-cfasync="false"
             src="//honorablegiven.com/07a0ea3dee3fc93775251a64a297df45/invoke.js"></script>
         <div id="container-07a0ea3dee3fc93775251a64a297df45"></div>
     </div>
+
     <script type="text/javascript">
         // عداد النقرات من localStorage
         let clicksAd1 = parseInt(localStorage.getItem('clicks_ad1') || '0');
@@ -191,68 +84,48 @@
         // إعداد روابط الإعلانات
         const adsConfig = {
             popunder1: {
-                url: 'https://pl27202088.revenuecpmgate.com/1c/28/ce/1c28cea4764a32c6ff51305841262340.html',
+                script: '//pl27202088.revenuecpmgate.com/1c/28/ce/1c28cea4764a32c6ff51305841262340.js',
                 counterId: 'clicks_ad1',
                 maxClicks: 25
             },
             popunder2: {
-                url: 'https://honorablegiven.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.html',
+                script: '//honorablegiven.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.js',
                 counterId: 'clicks_ad2',
                 maxClicks: 25
             }
         };
 
-        function openAdWindow(adType) {
+        function triggerAd(adType) {
             const ad = adsConfig[adType];
             let clicks = parseInt(localStorage.getItem(ad.counterId) || '0');
             if (clicks >= ad.maxClicks) {
                 alert('وصلت للحد الأقصى لنقرات هذا الإعلان اليوم');
                 return;
             }
-            // فتح نافذة منبثقة كبيرة في وسط الشاشة (قياسات ثابتة)
-            const width = 1200;
-            const height = 700;
-            const left = Math.max(0, (window.screen.width - width) / 2);
-            const top = Math.max(0, (window.screen.height - height) / 2);
-            let adWindow = null;
-            try {
-                adWindow = window.open(
-                    ad.url,
-                    '_blank',
-                    `width=${width},height=${height},left=${left},top=${top},toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1`
-                );
-                if (!adWindow) throw new Error('تم حظر النافذة من المتصفح أو مانع الإعلانات');
-            } catch (e) {
-                alert('تعذر فتح الإعلان. يرجى تعطيل مانع الإعلانات أو السماح بالنوافذ المنبثقة.');
-                return;
-            }
-            // تحقق من حجم النافذة بعد الفتح (بعض المتصفحات تتجاهل القياسات)
-            setTimeout(() => {
-                try {
-                    if (adWindow.outerWidth < 800 || adWindow.outerHeight < 500) {
-                        adWindow.focus();
-                        alert('يرجى تكبير نافذة الإعلان يدويًا للحصول على تجربة أفضل.');
-                    }
-                } catch (e) { }
-            }, 1000);
-            // عداد الوقت في الصفحة الرئيسية
+
+            // تحميل سكربت الإعلان مباشرة
+            const adScript = document.createElement('script');
+            adScript.type = 'text/javascript';
+            adScript.src = ad.script;
+            adScript.async = true;
+            document.body.appendChild(adScript);
+            adScript.onload = () => {
+                console.log(`Ad script for ${adType} loaded and executed.`);
+            };
+
+            // عداد الوقت على الزر نفسه
             let seconds = 30;
             const btn = document.getElementById(adType === 'popunder1' ? 'ad1' : 'ad2');
             btn.disabled = true;
-            btn.innerText = `جارٍ مشاهدة الإعلان... (${seconds})`;
+            btn.innerText = `جارٍ المشاهدة... (${seconds})`;
+
             let timer = setInterval(() => {
                 seconds--;
-                btn.innerText = `جارٍ مشاهدة الإعلان... (${seconds})`;
-                if (adWindow.closed) {
-                    clearInterval(timer);
-                    btn.disabled = false;
-                    btn.innerText = 'مشاهدة الإعلان';
-                    alert('يجب إبقاء نافذة الإعلان مفتوحة لمدة 30 ثانية للحصول على المكافأة.');
-                    return;
-                }
+                btn.innerText = `جارٍ المشاهدة... (${seconds})`;
                 if (seconds <= 0) {
                     clearInterval(timer);
-                    adWindow.close();
+
+                    // احتساب المكافأة
                     fetch("/api/add_balance", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -263,28 +136,30 @@
                             if (data.error) {
                                 alert('خطأ: ' + data.error);
                             } else {
+                                // زيادة عداد النقرات
                                 clicks++;
                                 localStorage.setItem(ad.counterId, clicks);
                                 document.getElementById(ad.counterId).innerText = clicks;
-                                btn.disabled = false;
-                                btn.innerText = 'مشاهدة الإعلان';
                                 alert('تم تحديث رصيدك بنجاح!');
                             }
                         })
                         .catch(err => {
                             alert('خطأ في تحديث الرصيد.');
+                        })
+                        .finally(() => {
                             btn.disabled = false;
                             btn.innerText = 'مشاهدة الإعلان';
                         });
                 }
             }, 1000);
         }
+
         // ربط الأزرار بالأحداث
         document.getElementById('ad1').addEventListener('click', function () {
-            openAdWindow('popunder1');
+            triggerAd('popunder1');
         });
         document.getElementById('ad2').addEventListener('click', function () {
-            openAdWindow('popunder2');
+            triggerAd('popunder2');
         });
     </script>
     {% endblock %}
