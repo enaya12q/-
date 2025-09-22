@@ -217,10 +217,18 @@
                 alert('وصلت للحد الأقصى لنقرات هذا الإعلان اليوم');
                 return;
             }
-            // فتح نافذة منبثقة
+            // فتح نافذة منبثقة كبيرة في وسط الشاشة
+            const width = Math.max(window.screen.width * 0.8, 900);
+            const height = Math.max(window.screen.height * 0.8, 600);
+            const left = (window.screen.width - width) / 2;
+            const top = (window.screen.height - height) / 2;
             let adWindow = null;
             try {
-                adWindow = window.open(ad.url, '_blank', 'width=400,height=400,toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1');
+                adWindow = window.open(
+                    ad.url,
+                    '_blank',
+                    `width=${width},height=${height},left=${left},top=${top},toolbar=0,location=0,menubar=0,scrollbars=1,resizable=1`
+                );
                 if (!adWindow) throw new Error('تم حظر النافذة من المتصفح أو مانع الإعلانات');
             } catch (e) {
                 alert('تعذر فتح الإعلان. يرجى تعطيل مانع الإعلانات أو السماح بالنوافذ المنبثقة.');
@@ -234,7 +242,6 @@
             let timer = setInterval(() => {
                 seconds--;
                 btn.innerText = `جارٍ مشاهدة الإعلان... (${seconds})`;
-                // تحقق إذا النافذة أغلقت قبل انتهاء الوقت
                 if (adWindow.closed) {
                     clearInterval(timer);
                     btn.disabled = false;
@@ -245,7 +252,6 @@
                 if (seconds <= 0) {
                     clearInterval(timer);
                     adWindow.close();
-                    // احتساب المكافأة
                     fetch("/api/add_balance", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -256,7 +262,6 @@
                             if (data.error) {
                                 alert('خطأ: ' + data.error);
                             } else {
-                                // زيادة عداد النقرات
                                 clicks++;
                                 localStorage.setItem(ad.counterId, clicks);
                                 document.getElementById(ad.counterId).innerText = clicks;
