@@ -290,8 +290,10 @@ def dashboard():
             error=None
         )
     except Exception as e:
-        logging.error(f"Exception in /dashboard: {e}", exc_info=True)
-        return render_template('dashboard.html', balance=0, error=f"Internal error: {str(e)}")
+        import traceback
+        error_details = traceback.format_exc()
+        logging.error(f"Exception in /dashboard: {e}\n{error_details}", exc_info=True)
+        return render_template('dashboard.html', balance=0, error=f"خطأ برمجي: {str(e)}<br><pre>{error_details}</pre>")
 
 # --- Withdrawal Route ---
 @app.route('/withdraw', methods=['GET', 'POST'])
