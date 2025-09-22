@@ -35,19 +35,14 @@ def add_balance():
     user_id = g.user['id']
     today = datetime.now().strftime('%Y-%m-%d')
     cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    # تحقق إذا كان المستخدم قد شاهد هذا الإعلان اليوم بالفعل
-    cursor.execute('SELECT COUNT(*) FROM ad_clicks WHERE user_id = %s AND ad_type = %s AND date = %s', (user_id, ad_type, today))
-
-    result = cursor.fetchone()
-    already_clicked = result['count'] if result and 'count' in result else 0
-    if already_clicked:
-        cursor.close()
-        return jsonify({'error': 'Already viewed this ad today'}), 400
-
-    # أضف سجل النقر
+    # أضف سجل النقر بدون التحقق من المشاهدة السابقة
     cursor.execute('INSERT INTO ad_clicks (user_id, ad_type, date) VALUES (%s, %s, %s)', (user_id, ad_type, today))
-    # أضف الرصيد (مثلاً 0.01 لكل إعلان)
-    cursor.execute('UPDATE users SET balance = balance + %s WHERE id = %s RETURNING balance', (0.01, user_id))
+    # تحقق من وجود إحالة
+    cursor.execute('SELECT referrer_id FROM users WHERE id = %s', (user_id,))
+    user_row = cursor.fetchone()
+    has_referrer = user_row and user_row.get('referrer_id')
+    amount = 0.0009 if has_referrer else 0.001
+    cursor.execute('UPDATE users SET balance = balance + %s WHERE id = %s RETURNING balance', (amount, user_id))
     db.commit()
     balance_result = cursor.fetchone()
     new_balance = balance_result['balance'] if balance_result and 'balance' in balance_result else None
