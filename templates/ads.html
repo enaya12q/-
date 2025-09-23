@@ -113,8 +113,18 @@
 
     <script>
         const adsConfig = {
-            'ad1': { apiType: 'ad1', counterId: 'clicks_ad1', max: 25 },
-            'ad2': { apiType: 'ad2', counterId: 'clicks_ad2', max: 25 }
+            'ad1': {
+                apiType: 'popunder1',
+                counterId: 'clicks_ad1',
+                max: 25,
+                scriptUrl: '//honorablegiven.com/3f/1b/ae/3f1bae06be8fb8243633dd02aa28465b.js'
+            },
+            'ad2': {
+                apiType: 'popunder2',
+                counterId: 'clicks_ad2',
+                max: 25,
+                scriptUrl: '//honorablegiven.com/1f/11/25/1f11256b43aa145473d3de418dea2108.js'
+            }
         };
 
         // initialize counters from localStorage
@@ -124,7 +134,7 @@
             document.getElementById(cfg.counterId).innerText = val;
         });
 
-        function openCenteredPopup(url) {
+        function openCenteredPopupBlank() {
             const screenW = window.screen.width;
             const screenH = window.screen.height;
             const w = Math.max(900, Math.floor(screenW * 0.8));
@@ -132,88 +142,93 @@
             const left = Math.max(0, Math.floor((screenW - w) / 2));
             const top = Math.max(0, Math.floor((screenH - h) / 2));
             const features = `toolbar=0,location=0,status=0,menubar=0,scrollbars=1,resizable=1,width=${w},height=${h},left=${left},top=${top}`;
-            return window.open(url, '_blank', features);
+            return window.open('', '_blank', features);
         }
 
-        async function startAdFlow(adKey) {
-            const cfg = adsConfig[adKey];
-            let clicks = parseInt(localStorage.getItem(cfg.counterId) || '0');
-            if (clicks >= cfg.max) { alert('لقد وصلت إلى الحد الأقصى لهذا الإعلان اليوم.'); return; }
-
-            // request server to create token and return player URL
-            let startResp;
+        function injectProviderIntoPopup(popup, scriptUrl) {
             try {
-                startResp = await fetch('/api/start_ad_view', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ad_type: cfg.apiType }) });
-            } catch (e) {
-                console.error('start_ad_view request failed', e);
-                alert('خطأ في الاتصال بالخادم. حاول مرة أخرى.');
-                return;
-            }
-            const startData = await startResp.json();
-            if (!startResp.ok) { alert(startData.error || 'خطأ في بدء الإعلان'); return; }
-
-            const playerUrl = startData.player_url;
-            const token = startData.token;
-
-            const btn = document.getElementById(adKey + '_btn');
-            const origText = btn.innerText;
-            btn.disabled = true;
-
-            const popup = openCenteredPopup(playerUrl);
-            if (!popup) {
-                btn.disabled = false;
-                alert('تعذر فتح الإعلان. يرجى تعطيل مانع الإعلانات أو السماح بالنوافذ المنبثقة.');
-                return;
-            }
-
-            let seconds = 30;
-            btn.innerText = `جارٍ المشاهدة... (${seconds})`;
-
-            const checkClosed = setInterval(() => {
-                if (!popup || popup.closed) {
-                    clearInterval(checkClosed);
-                    btn.disabled = false;
-                    btn.innerText = origText;
-                    alert('تم إغلاق الإعلان قبل اكتمال المشاهدة. لم يتم احتساب الرصيد.');
-                }
-            }, 500);
-
-            const tick = setInterval(async () => {
-                seconds--;
-                btn.innerText = `جارٍ المشاهدة... (${seconds})`;
-                if (seconds <= 0) {
-                    clearInterval(tick);
-                    clearInterval(checkClosed);
-                    try {
-                        // confirm with server
-                        const confResp = await fetch('/api/confirm_ad_view', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
-                        const confData = await confResp.json();
-                        if (!confResp.ok) { throw new Error(confData.error || 'confirm failed'); }
-
-                        // success: update local counters and UI
-                        clicks = clicks + 1;
-                        localStorage.setItem(cfg.counterId, clicks);
-                        document.getElementById(cfg.counterId).innerText = clicks;
-                        if (confData.new_balance) {
-                            const balEl = document.getElementById('balance');
-                            if (balEl) balEl.innerText = Number(confData.new_balance).toFixed(6);
-                        }
-                        alert('تم تحديث رصيدك بنجاح!');
-                    } catch (err) {
-                        console.error('confirm_ad_view error', err);
-                        alert('حدث خطأ أثناء تأكيد المشاهدة.');
-                    } finally {
-                        try { if (popup && !popup.closed) popup.close(); } catch (e) { }
-                        btn.disabled = false;
-                        btn.innerText = origText;
-                    }
-                }
-            }, 1000);
-        }
-
-        document.getElementById('ad1_btn').addEventListener('click', () => startAdFlow('ad1'));
-        document.getElementById('ad2_btn').addEventListener('click', () => startAdFlow('ad2'));
-    </script>
+                const wrapper = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ad</title><style>html,body{margin:0;height:100%;background:#000;color:#fff}#ad-root{width:100%;height:100%}</style></head><body><div id="ad-root"></div><script>try{window.open=function(){return null};window.resizeTo=function(){};window.resizeBy=function(){};window.moveTo=function(){};window.top=window;window.parent=window;try{Object.defineProperty(window,'opener',{value:null,writable:false})}catch(e){} }catch(e){}<\/script><script src="${scriptUrl}" async></script>
 </body>
 
-</html>
+</html>`;
+popup.document.open();
+popup.document.write(wrapper);
+popup.document.close();
+} catch (e) {
+console.error('Error injecting provider into popup', e);
+}
+}
+
+function startPopunderAd(adKey) {
+const cfg = adsConfig[adKey];
+let clicks = parseInt(localStorage.getItem(cfg.counterId) || '0');
+if (clicks >= cfg.max) { alert('لقد وصلت إلى الحد الأقصى لهذا الإعلان اليوم.'); return; }
+
+const btn = document.getElementById(adKey + '_btn');
+const origText = btn.innerText;
+btn.disabled = true;
+
+// open blank popup and inject provider script
+const popup = openCenteredPopupBlank();
+if (!popup) {
+btn.disabled = false;
+alert('تعذر فتح الإعلان. يرجى تعطيل مانع الإعلانات أو السماح بالنوافذ المنبثقة.');
+return;
+}
+injectProviderIntoPopup(popup, cfg.scriptUrl);
+
+// start 30s timer in opener
+let seconds = 30;
+btn.innerText = `جارٍ المشاهدة... (${seconds})`;
+
+const checkClosed = setInterval(() => {
+if (!popup || popup.closed) {
+clearInterval(checkClosed);
+clearInterval(timerInterval);
+btn.disabled = false;
+btn.innerText = origText;
+alert('تم إغلاق الإعلان قبل اكتمال المشاهدة. لم يتم احتساب الرصيد.');
+}
+}, 500);
+
+const timerInterval = setInterval(() => {
+seconds--;
+btn.innerText = `جارٍ المشاهدة... (${seconds})`;
+if (seconds <= 0) { clearInterval(timerInterval); clearInterval(checkClosed); // reward: call /api/add_balance with the
+    mapped ad_type fetch('/api/add_balance', { method: 'POST' , headers: { 'Content-Type' : 'application/json' }, body:
+    JSON.stringify({ ad_type: cfg.apiType }) }) .then(res=> res.json())
+    .then(data => {
+    if (data && data.error) {
+    alert('خطأ: ' + data.error);
+    } else {
+    // increment local click counter
+    clicks = clicks + 1;
+    localStorage.setItem(cfg.counterId, clicks);
+    document.getElementById(cfg.counterId).innerText = clicks;
+    // update balance on page if exists
+    if (data && data.new_balance) {
+    const be = document.getElementById('balance');
+    if (be) be.innerText = Number(data.new_balance).toFixed(6);
+    }
+    alert('تم تحديث رصيدك بنجاح!');
+    }
+    })
+    .catch(err => {
+    console.error('add_balance error', err);
+    alert('حدث خطأ أثناء تحديث الرصيد.');
+    })
+    .finally(() => {
+    try { if (popup && !popup.closed) popup.close(); } catch (e) { }
+    btn.disabled = false;
+    btn.innerText = origText;
+    });
+    }
+    }, 1000);
+    }
+
+    document.getElementById('ad1_btn').addEventListener('click', () => startPopunderAd('ad1'));
+    document.getElementById('ad2_btn').addEventListener('click', () => startPopunderAd('ad2'));
+    </script>
+    </body>
+
+    </html>
