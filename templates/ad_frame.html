@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <title>Ad Container</title>
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' https:; script-src 'self' https: 'unsafe-inline'; frame-ancestors 'none';">
+        content="default-src 'self' https:; script-src 'self' https: 'unsafe-inline'; frame-ancestors *;">
     <style>
         body,
         html {
@@ -20,13 +20,21 @@
 
 <body>
     <script type="text/javascript">
-        // Defensive overrides: prevent popups and parent navigation
+        // Defensive overrides: by default we allow popups in dev. If you need to lock down,
+        // call this page without ?dev=1 and implement stricter policies.
         try {
-            window.open = function () { console.warn('window.open blocked'); return null; };
-            window.top = window;
-            window.parent = window;
-            window.location.replace = function () { console.warn('navigation blocked'); };
-            window.postMessage = function () { console.warn('postMessage blocked'); };
+            const urlParams = new URLSearchParams(window.location.search);
+            const isDev = urlParams.get('dev') === '1';
+            if (!isDev) {
+                // production: keep stronger protections (but be careful as many ad providers need popups)
+                window.open = function () { console.warn('window.open blocked'); return null; };
+                window.top = window;
+                window.parent = window;
+                window.location.replace = function () { console.warn('navigation blocked'); };
+                window.postMessage = function () { console.warn('postMessage blocked'); };
+            } else {
+                console.log('ad_frame in dev mode: popups and navigation allowed for testing');
+            }
         } catch (e) { console.warn('defensive overrides failed', e); }
 
         // احصل على رابط السكربت من عنوان الصفحة

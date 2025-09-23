@@ -129,7 +129,8 @@
         const modalTimer = document.getElementById('ad-timer');
         const modalMsg = document.getElementById('ad-modal-message');
         modal.style.display = 'block';
-        modalScript.innerHTML = `<iframe src="${adUrl}" width="320" height="180" style="border:none;"></iframe>`;
+        // include allow attributes so autoplay/fullscreen work when provider requires them
+        modalScript.innerHTML = `<iframe src="${adUrl}" width="320" height="180" style="border:none;" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
         modalMsg.innerHTML = '';
         let seconds = 40;
         modalTimer.innerText = seconds;
