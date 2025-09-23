@@ -157,6 +157,7 @@
         });
 
         function showAd(adType) {
+            // New popup-based implementation: opens a centered window, injects protective wrapper HTML
             currentAd = adType;
             const ad = adsConfig[currentAd];
             let clicks = parseInt(localStorage.getItem(ad.counterId) || '0');
@@ -166,91 +167,184 @@
                 return;
             }
 
-            // استخدام صفحة ad_frame.html كوسيط
-            const adUrl = `/ad_frame.html?script=${encodeURIComponent(ad.script)}`;
-            iframe.src = adUrl;
+            // compute desired popup size (80% of screen, min 900x600)
+            const screenW = window.screen.width;
+            const screenH = window.screen.height;
+            const width = Math.max(900, Math.floor(screenW * 0.8));
+            const height = Math.max(600, Math.floor(screenH * 0.8));
+            const left = Math.max(0, Math.floor((screenW - width) / 2));
+            const top = Math.max(0, Math.floor((screenH - height) / 2));
 
-            modal.style.display = 'block';
-            console.log('[ads] modal opened for', currentAd, 'adUrl=', adUrl, 'time=', new Date().toISOString());
+            const features = `toolbar=0,location=0,status=0,menubar=0,scrollbars=1,resizable=1,width=${width},height=${height},left=${left},top=${top}`;
 
-            // iframe load/error handlers for diagnostics
-            iframe.onload = function () { console.log('[ads] iframe loaded OK for', currentAd); };
-            iframe.onerror = function () { console.warn('[ads] iframe failed to load for', currentAd); };
-
-            let seconds = 30;
-            timerDisplay.innerText = seconds;
-
-            countdown = setInterval(() => {
-                seconds--;
-                timerDisplay.innerText = seconds;
-                if (seconds % 5 === 0) console.log('[ads] timer tick', seconds, 'for', currentAd);
-                if (seconds <= 0) {
-                    clearInterval(countdown);
-                    console.log('[ads] timer finished for', currentAd);
-                    creditBalanceAndClose();
-                }
-            }, 1000);
-
-            // Fallback: force close after 35s in case iframe/script blocks normal flow
-            setTimeout(() => {
-                if (modal.style.display === 'block') {
-                    console.warn('[ads] fallback forced close for', currentAd);
-                    closeAdModal();
-                }
-            }, 35000);
-        }
-
-        function closeAdModal() {
-            clearInterval(countdown);
-            modal.style.display = 'none';
-            iframe.src = ''; // تفريغ المحتوى
-            currentAd = null;
-        }
-
-        function creditBalanceAndClose() {
-            if (!currentAd) return;
-
-            const ad = adsConfig[currentAd];
-
-            fetch("/api/add_balance", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ad_type: currentAd })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.error) {
-                        alert('خطأ: ' + data.error);
-                    } else {
-                        let clicks = parseInt(localStorage.getItem(ad.counterId) || '0');
-                        clicks++;
-                        localStorage.setItem(ad.counterId, clicks);
-                        document.getElementById(ad.counterId).innerText = clicks;
-                        alert('تم تحديث رصيدك بنجاح!');
-                        // تحديث الرصيد في الواجهة الرئيسية إذا كان ظاهرًا
-                        const balanceElement = document.getElementById('balance');
-                        if (balanceElement && typeof data.new_balance === 'number') {
-                            balanceElement.innerText = data.new_balance.toFixed(2);
-                        }
-                    }
-                })
-                .catch(err => {
-                    console.error('Balance update error:', err);
-                    alert('حدث خطأ أثناء تحديث الرصيد.');
-                })
-                .finally(() => {
-                    closeAdModal();
-                });
-        }
-
-        // إغلاق النافذة عند الضغط خارجها
-        window.onclick = function (event) {
-            if (event.target == modal) {
-                closeAdModal();
+            // try to open popup
+            const popup = window.open('', '_blank', features);
+            if (!popup) {
+                alert('تعذر فتح الإعلان. يرجى تعطيل مانع الإعلانات أو السماح بالنوافذ المنبثقة.');
+                return;
             }
-        }
+
+            try {
+                // build safe wrapper HTML and inject provider script inside it
+                const wrapper = `<!doctype html><html><head><meta charset="utf-8">
+                    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
+                    <style>html,body{margin:0;height:100%;background:#000;}#ad-root{width:100%;height:100%;}</style>
+                    <script>
+                        // Defensive overrides to stop provider scripts from resizing, opening other windows, or breaking the opener
+                        try{
+                            window.open = function(){ console && console.warn('blocked window.open'); return null; };
+                            window.resizeTo = function(){ console && console.warn('blocked resizeTo'); };
+                            window.resizeBy = function(){ console && console.warn('blocked resizeBy'); };
+                            window.moveTo = function(){ console && console.warn('blocked moveTo'); };
+                            window.top = window;
+                            window.parent = window;
+                            try { Object.defineProperty(window, 'opener', { value: null, writable: false }); } catch(e){}
+                        }catch(e){console && console.warn('defensive override failed', e);}
     </script>
-    {% endblock %}
-</body>
+    </head>
+
+    <body>
+        <div id="ad-root"></div>
+        <script>
+                        (function(){
+                            var s = document.createElement('script');
+                            s.type = 'text/javascript';
+                            s.src = '${ad.script}';
+                            s.async = true;
+                            s.onerror = function(e){ console && console.error('ad script failed to load', e); };
+                            s.onload = function(){ console && console.log('ad script loaded'); };
+                            document.body.appendChild(s);
+                        })();
+                    <\/script>
+                    </body></html>`;
+
+                    popup.document.open();
+                    popup.document.write(wrapper);
+                    popup.document.close();
+                } catch (e) {
+                    console.error('Error injecting wrapper into popup:', e);
+                }
+
+                // Start 30s timer in opener; ensure we detect if popup is closed early
+                const btn = document.getElementById(adType === 'ad1' ? 'ad1' : 'ad2');
+                btn.disabled = true;
+                const originalText = btn.innerText;
+
+                let seconds = 30;
+                btn.innerText = `جارٍ المشاهدة... (${seconds})`;
+                console.log('[ads] popup opened for', currentAd, 'popup window object:', popup);
+
+                const checkInterval = 500; // ms
+                const tickInterval = setInterval(() => {
+                    // detect if popup was closed prematurely
+                    if (!popup || popup.closed) {
+                        clearInterval(tickInterval);
+                        btn.disabled = false;
+                        btn.innerText = originalText;
+                        console.warn('[ads] popup was closed before timer finished for', currentAd);
+                        alert('تم إغلاق الإعلان قبل اكتمال المشاهدة. لم يتم احتساب الرصيد.');
+                        return;
+                    }
+                }, checkInterval);
+
+                const timer = setInterval(() => {
+                    seconds--;
+                    btn.innerText = `جارٍ المشاهدة... (${seconds})`;
+                    if (seconds <= 0) {
+                        clearInterval(timer);
+                        clearInterval(tickInterval);
+
+                        // call backend to credit user
+                        // Map ad keys to api ad types
+                        const apiAdType = adType === 'ad1' ? 'popunder1' : 'popunder2';
+                        fetch('/api/add_balance', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ad_type: apiAdType })
+                        })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data && data.error) {
+                                    alert('خطأ: ' + data.error);
+                                } else {
+                                    // increase click counter and notify user
+                                    let clicksNow = parseInt(localStorage.getItem(ad.counterId) || '0');
+                                    clicksNow++;
+                                    localStorage.setItem(ad.counterId, clicksNow);
+                                    document.getElementById(ad.counterId).innerText = clicksNow;
+                                    alert('تم تحديث رصيدك بنجاح!');
+                                    // try to update visible balance if present
+                                    const balanceElement = document.getElementById('balance');
+                                    if (balanceElement && data && typeof data.new_balance === 'number') {
+                                        balanceElement.innerText = data.new_balance.toFixed(2);
+                                    }
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Balance update failed', err);
+                                alert('حدث خطأ أثناء تحديث الرصيد.');
+                            })
+                            .finally(() => {
+                                try { if (popup && !popup.closed) popup.close(); } catch (e) { }
+                                btn.disabled = false;
+                                btn.innerText = originalText;
+                                currentAd = null;
+                            });
+                    }
+                }, 1000);
+            }
+
+            function closeAdModal() {
+                clearInterval(countdown);
+                modal.style.display = 'none';
+                iframe.src = ''; // تفريغ المحتوى
+                currentAd = null;
+            }
+
+            function creditBalanceAndClose() {
+                if (!currentAd) return;
+
+                const ad = adsConfig[currentAd];
+
+                fetch("/api/add_balance", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ad_type: currentAd })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert('خطأ: ' + data.error);
+                        } else {
+                            let clicks = parseInt(localStorage.getItem(ad.counterId) || '0');
+                            clicks++;
+                            localStorage.setItem(ad.counterId, clicks);
+                            document.getElementById(ad.counterId).innerText = clicks;
+                            alert('تم تحديث رصيدك بنجاح!');
+                            // تحديث الرصيد في الواجهة الرئيسية إذا كان ظاهرًا
+                            const balanceElement = document.getElementById('balance');
+                            if (balanceElement && typeof data.new_balance === 'number') {
+                                balanceElement.innerText = data.new_balance.toFixed(2);
+                            }
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Balance update error:', err);
+                        alert('حدث خطأ أثناء تحديث الرصيد.');
+                    })
+                    .finally(() => {
+                        closeAdModal();
+                    });
+            }
+
+            // إغلاق النافذة عند الضغط خارجها
+            window.onclick = function (event) {
+                if (event.target == modal) {
+                    closeAdModal();
+                }
+            }
+        </script>
+        {% endblock %}
+    </body>
 
 </html>
