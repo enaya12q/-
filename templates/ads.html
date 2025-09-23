@@ -171,6 +171,11 @@
             iframe.src = adUrl;
 
             modal.style.display = 'block';
+            console.log('[ads] modal opened for', currentAd, 'adUrl=', adUrl, 'time=', new Date().toISOString());
+
+            // iframe load/error handlers for diagnostics
+            iframe.onload = function () { console.log('[ads] iframe loaded OK for', currentAd); };
+            iframe.onerror = function () { console.warn('[ads] iframe failed to load for', currentAd); };
 
             let seconds = 30;
             timerDisplay.innerText = seconds;
@@ -178,11 +183,21 @@
             countdown = setInterval(() => {
                 seconds--;
                 timerDisplay.innerText = seconds;
+                if (seconds % 5 === 0) console.log('[ads] timer tick', seconds, 'for', currentAd);
                 if (seconds <= 0) {
                     clearInterval(countdown);
+                    console.log('[ads] timer finished for', currentAd);
                     creditBalanceAndClose();
                 }
             }, 1000);
+
+            // Fallback: force close after 35s in case iframe/script blocks normal flow
+            setTimeout(() => {
+                if (modal.style.display === 'block') {
+                    console.warn('[ads] fallback forced close for', currentAd);
+                    closeAdModal();
+                }
+            }, 35000);
         }
 
         function closeAdModal() {
