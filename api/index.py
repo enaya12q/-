@@ -49,6 +49,92 @@ def add_balance():
     cursor.close()
     return jsonify({'new_balance': new_balance})
 
+
+@app.route('/api/start_ad_view', methods=['POST'])
+def start_ad_view():
+    if not g.user:
+        return jsonify({'error': 'Not logged in'}), 401
+    data = request.get_json() or {}
+    ad_type = data.get('ad_type')
+    if ad_type not in ['ad1', 'ad2']:
+        return jsonify({'error': 'Invalid ad type'}), 400
+
+    token = str(uuid.uuid4())
+    db = get_db()
+    cursor = db.cursor()
+    # create ad_views table if not exists
+    cursor.execute('''CREATE TABLE IF NOT EXISTS ad_views (
+        token TEXT PRIMARY KEY,
+        user_id INTEGER,
+        ad_type TEXT,
+        started_at TIMESTAMP WITHOUT TIME ZONE,
+        confirmed BOOLEAN DEFAULT FALSE
+    )''')
+    cursor.execute('INSERT INTO ad_views (token, user_id, ad_type, started_at, confirmed) VALUES (%s, %s, %s, NOW(), false)', (token, g.user['id'], ad_type))
+    db.commit()
+    cursor.close()
+    player_url = url_for('ad_player', token=token, _external=True)
+    return jsonify({'token': token, 'player_url': player_url})
+
+
+@app.route('/ads/player/<token>')
+def ad_player(token):
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute('SELECT token, user_id, ad_type, confirmed FROM ad_views WHERE token = %s', (token,))
+    row = cursor.fetchone()
+    cursor.close()
+    if not row:
+        abort(404)
+    if row.get('confirmed'):
+        return '<h3>هذا الإعلان تم تأكيده مسبقاً.</h3>'
+    # Render a simple ad player page (can be replaced with provider script if needed)
+    return render_template('ad_player.html', token=token, ad_type=row.get('ad_type'))
+
+
+@app.route('/api/confirm_ad_view', methods=['POST'])
+def confirm_ad_view():
+    if not g.user:
+        return jsonify({'error': 'Not logged in'}), 401
+    data = request.get_json() or {}
+    token = data.get('token')
+    if not token:
+        return jsonify({'error': 'Missing token'}), 400
+
+    db = get_db()
+    cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute('SELECT token, user_id, ad_type, confirmed FROM ad_views WHERE token = %s', (token,))
+    row = cursor.fetchone()
+    if not row:
+        cursor.close()
+        return jsonify({'error': 'Invalid token'}), 400
+    if row.get('user_id') != g.user.get('id'):
+        cursor.close()
+        return jsonify({'error': 'Token does not belong to user'}), 403
+    if row.get('confirmed'):
+        cursor.close()
+        return jsonify({'error': 'Already confirmed'}), 400
+
+    ad_type = row.get('ad_type')
+    api_ad_type = 'popunder1' if ad_type == 'ad1' else 'popunder2'
+    try:
+        cursor.execute('INSERT INTO ad_clicks (user_id, ad_type, date) VALUES (%s, %s, %s)', (g.user['id'], api_ad_type, datetime.now().strftime('%Y-%m-%d')))
+        cursor.execute('SELECT referrer_id FROM users WHERE id = %s', (g.user['id'],))
+        user_row = cursor.fetchone()
+        has_referrer = user_row and user_row.get('referrer_id')
+        amount = 0.0009 if has_referrer else 0.001
+        cursor.execute('UPDATE users SET balance = balance + %s WHERE id = %s RETURNING balance', (amount, g.user['id']))
+        cursor.execute('UPDATE ad_views SET confirmed = true WHERE token = %s', (token,))
+        db.commit()
+        balance_result = cursor.fetchone()
+        new_balance = balance_result['balance'] if balance_result and 'balance' in balance_result else None
+        cursor.close()
+        return jsonify({'new_balance': new_balance})
+    except Exception as e:
+        db.rollback()
+        cursor.close()
+        return jsonify({'error': str(e)}), 500
+
 def get_db():
     if 'db' not in g:
         g.db = psycopg2.connect(

@@ -1,350 +1,219 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>الإعلانات | Smart Lab</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    {% block head %}
     <style>
-        /* ... (أنماط الأزرار والقائمة) ... */
+        body {
+            font-family: sans-serif;
+            background: #0f0f0f;
+            color: #eee;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 80px auto;
+            padding: 20px;
+        }
+
+        .ad-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            border: 1px solid #333;
+            margin-bottom: 10px;
+        }
+
+        .ad-btn {
+            background: #00bcd4;
+            color: #000;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer
+        }
+
+        .ad-btn[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed
+        }
+
         #top-banner-ad,
         #bottom-banner-ad {
             position: fixed;
             left: 0;
             width: 100%;
             text-align: center;
-            background: #000;
-            z-index: 10000;
-            padding: 5px 0;
-            border-bottom: 1px solid #00ffff;
+            z-index: 10000
         }
 
         #top-banner-ad {
-            top: 0;
+            top: 0
         }
 
         #bottom-banner-ad {
-            bottom: 0;
-            border-top: 1px solid #00ffff;
-            border-bottom: none;
+            bottom: 0
         }
 
-        .ads-page-container {
-            padding-top: 70px;
-            /* لإعطاء مساحة للإعلان العلوي */
-            padding-bottom: 70px;
-            /* لإعطاء مساحة للإعلان السفلي */
-        }
-
-        #ad-modal {
-            display: none;
-            position: fixed;
-            z-index: 10001;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.8);
-        }
-
-        .modal-content {
-            background-color: #1a1a1a;
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid #00ffff;
-            width: 80%;
-            max-width: 900px;
-            position: relative;
+        .ad-counters {
             text-align: center;
-        }
-
-        .close-btn {
-            color: #aaa;
-            position: absolute;
-            top: 10px;
-            right: 25px;
-            font-size: 35px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        #ad-iframe {
-            width: 100%;
-            height: 400px;
-            border: 1px solid #333;
-        }
-
-        #modal-timer {
-            font-size: 24px;
-            color: #00ffff;
-            margin-top: 15px;
+            margin-top: 12px
         }
     </style>
-    {% endblock %}
 </head>
 
 <body>
-    {% block content %}
-    <!-- إعلان بانر علوي ثابت -->
     <div id="top-banner-ad">
+        <!-- provider banner (kept as-is) -->
         <script type='text/javascript'
             src='//pl27202122.revenuecpmgate.com/24/3e/ee/243eee94c6a0fa1cf865b310d6ade1eb.js'></script>
     </div>
 
-    <div class="ads-page-container">
-        <h2>صفحة الإعلانات (نظام جديد)</h2>
-        <div class="ad-list">
-            <div class="ad-item">
-                <span class="ad-title">Ad 1 (Iframe)</span>
-                <button class="ad-btn" onclick="showAd('ad1')">مشاهدة الإعلان</button>
+    <div class="container">
+        <h1>صفحة الإعلانات (نظام معتمد)</h1>
+        <p>اضغط على "مشاهدة الإعلان" لفتح الإعلان في نافذة جديدة. يجب إبقاء النافذة مفتوحة لمدة 30 ثانية ليتم اعتماد
+            المشاهدة.</p>
+
+        <div class="ad-item">
+            <div>
+                <strong>Ad 1</strong>
+                <div style="font-size:13px;color:#bbb">نوع: popunder</div>
             </div>
-            <div class="ad-item">
-                <span class="ad-title">Ad 2 (Iframe)</span>
-                <button class="ad-btn" onclick="showAd('ad2')">مشاهدة الإعلان</button>
+            <div>
+                <button id="ad1_btn" class="ad-btn">مشاهدة الإعلان</button>
+                <div style="font-size:13px;margin-top:6px">نقرات: <span id="clicks_ad1">0</span>/25</div>
             </div>
         </div>
-    </div>
-    <div class="ad-counters">
-        <span>عدد نقرات إعلان 1: <span id="clicks_ad1">0</span> / 25</span> |
-        <span>عدد نقرات إعلان 2: <span id="clicks_ad2">0</span> / 25</span>
+
+        <div class="ad-item">
+            <div>
+                <strong>Ad 2</strong>
+                <div style="font-size:13px;color:#bbb">نوع: popunder</div>
+            </div>
+            <div>
+                <button id="ad2_btn" class="ad-btn">مشاهدة الإعلان</button>
+                <div style="font-size:13px;margin-top:6px">نقرات: <span id="clicks_ad2">0</span>/25</div>
+            </div>
+        </div>
+
+        <div class="ad-counters">
+            <small>تنبيه: إذا تم حظر النافذة المنبثقة، سيظهر رسالة لتعطيل مانع الإعلانات.</small>
+        </div>
     </div>
 
-    <!-- إعلان لافتة سفلية ثابت -->
     <div id="bottom-banner-ad">
         <script async="async" data-cfasync="false"
             src="//honorablegiven.com/07a0ea3dee3fc93775251a64a297df45/invoke.js"></script>
         <div id="container-07a0ea3dee3fc93775251a64a297df45"></div>
     </div>
 
-    <!-- Modal للإعلان -->
-    <div id="ad-modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeAdModal()">&times;</span>
-            <h3 id="modal-title">مشاهدة الإعلان</h3>
-            <iframe id="ad-iframe" sandbox="allow-scripts"></iframe>
-            <div id="modal-timer">30</div>
-        </div>
-    </div>
-
-    <script type="text/javascript">
-        const modal = document.getElementById('ad-modal');
-        const iframe = document.getElementById('ad-iframe');
-        const timerDisplay = document.getElementById('modal-timer');
-        let countdown;
-        let currentAd = null;
-
+    <script>
         const adsConfig = {
-            'ad1': {
-                script: '//pl27202088.revenuecpmgate.com/1c/28/ce/1c28cea4764a32c6ff51305841262340.js',
-                counterId: 'clicks_ad1',
-                maxClicks: 25
-            },
-            'ad2': {
-                script: '//honorablegiven.com/e4/06/54/e40654054912ec87321f8ae7b5b8475e.js',
-                counterId: 'clicks_ad2',
-                maxClicks: 25
-            }
+            'ad1': { apiType: 'ad1', counterId: 'clicks_ad1', max: 25 },
+            'ad2': { apiType: 'ad2', counterId: 'clicks_ad2', max: 25 }
         };
 
-        // تحديث عدادات النقرات عند تحميل الصفحة
-        Object.keys(adsConfig).forEach(key => {
-            const ad = adsConfig[key];
-            const clicks = parseInt(localStorage.getItem(ad.counterId) || '0');
-            document.getElementById(ad.counterId).innerText = clicks;
+        // initialize counters from localStorage
+        Object.keys(adsConfig).forEach(k => {
+            const cfg = adsConfig[k];
+            const val = parseInt(localStorage.getItem(cfg.counterId) || '0');
+            document.getElementById(cfg.counterId).innerText = val;
         });
 
-        function showAd(adType) {
-            // New popup-based implementation: opens a centered window, injects protective wrapper HTML
-            currentAd = adType;
-            const ad = adsConfig[currentAd];
-            let clicks = parseInt(localStorage.getItem(ad.counterId) || '0');
-
-            if (clicks >= ad.maxClicks) {
-                alert('لقد وصلت إلى الحد الأقصى لهذا الإعلان اليوم.');
-                return;
-            }
-
-            // compute desired popup size (80% of screen, min 900x600)
+        function openCenteredPopup(url) {
             const screenW = window.screen.width;
             const screenH = window.screen.height;
-            const width = Math.max(900, Math.floor(screenW * 0.8));
-            const height = Math.max(600, Math.floor(screenH * 0.8));
-            const left = Math.max(0, Math.floor((screenW - width) / 2));
-            const top = Math.max(0, Math.floor((screenH - height) / 2));
+            const w = Math.max(900, Math.floor(screenW * 0.8));
+            const h = Math.max(600, Math.floor(screenH * 0.8));
+            const left = Math.max(0, Math.floor((screenW - w) / 2));
+            const top = Math.max(0, Math.floor((screenH - h) / 2));
+            const features = `toolbar=0,location=0,status=0,menubar=0,scrollbars=1,resizable=1,width=${w},height=${h},left=${left},top=${top}`;
+            return window.open(url, '_blank', features);
+        }
 
-            const features = `toolbar=0,location=0,status=0,menubar=0,scrollbars=1,resizable=1,width=${width},height=${height},left=${left},top=${top}`;
+        async function startAdFlow(adKey) {
+            const cfg = adsConfig[adKey];
+            let clicks = parseInt(localStorage.getItem(cfg.counterId) || '0');
+            if (clicks >= cfg.max) { alert('لقد وصلت إلى الحد الأقصى لهذا الإعلان اليوم.'); return; }
 
-            // try to open popup
-            const popup = window.open('', '_blank', features);
+            // request server to create token and return player URL
+            let startResp;
+            try {
+                startResp = await fetch('/api/start_ad_view', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ad_type: cfg.apiType }) });
+            } catch (e) {
+                console.error('start_ad_view request failed', e);
+                alert('خطأ في الاتصال بالخادم. حاول مرة أخرى.');
+                return;
+            }
+            const startData = await startResp.json();
+            if (!startResp.ok) { alert(startData.error || 'خطأ في بدء الإعلان'); return; }
+
+            const playerUrl = startData.player_url;
+            const token = startData.token;
+
+            const btn = document.getElementById(adKey + '_btn');
+            const origText = btn.innerText;
+            btn.disabled = true;
+
+            const popup = openCenteredPopup(playerUrl);
             if (!popup) {
+                btn.disabled = false;
                 alert('تعذر فتح الإعلان. يرجى تعطيل مانع الإعلانات أو السماح بالنوافذ المنبثقة.');
                 return;
             }
 
-            try {
-                // build safe wrapper HTML and inject provider script inside it
-                const wrapper = `<!doctype html><html><head><meta charset="utf-8">
-                    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
-                    <style>html,body{margin:0;height:100%;background:#000;}#ad-root{width:100%;height:100%;}</style>
-                    <script>
-                        // Defensive overrides to stop provider scripts from resizing, opening other windows, or breaking the opener
-                        try{
-                            window.open = function(){ console && console.warn('blocked window.open'); return null; };
-                            window.resizeTo = function(){ console && console.warn('blocked resizeTo'); };
-                            window.resizeBy = function(){ console && console.warn('blocked resizeBy'); };
-                            window.moveTo = function(){ console && console.warn('blocked moveTo'); };
-                            window.top = window;
-                            window.parent = window;
-                            try { Object.defineProperty(window, 'opener', { value: null, writable: false }); } catch(e){}
-                        }catch(e){console && console.warn('defensive override failed', e);}
-    </script>
-    </head>
+            let seconds = 30;
+            btn.innerText = `جارٍ المشاهدة... (${seconds})`;
 
-    <body>
-        <div id="ad-root"></div>
-        <script>
-                        (function(){
-                            var s = document.createElement('script');
-                            s.type = 'text/javascript';
-                            s.src = '${ad.script}';
-                            s.async = true;
-                            s.onerror = function(e){ console && console.error('ad script failed to load', e); };
-                            s.onload = function(){ console && console.log('ad script loaded'); };
-                            document.body.appendChild(s);
-                        })();
-                    <\/script>
-                    </body></html>`;
-
-                    popup.document.open();
-                    popup.document.write(wrapper);
-                    popup.document.close();
-                } catch (e) {
-                    console.error('Error injecting wrapper into popup:', e);
+            const checkClosed = setInterval(() => {
+                if (!popup || popup.closed) {
+                    clearInterval(checkClosed);
+                    btn.disabled = false;
+                    btn.innerText = origText;
+                    alert('تم إغلاق الإعلان قبل اكتمال المشاهدة. لم يتم احتساب الرصيد.');
                 }
+            }, 500);
 
-                // Start 30s timer in opener; ensure we detect if popup is closed early
-                const btn = document.getElementById(adType === 'ad1' ? 'ad1' : 'ad2');
-                btn.disabled = true;
-                const originalText = btn.innerText;
-
-                let seconds = 30;
+            const tick = setInterval(async () => {
+                seconds--;
                 btn.innerText = `جارٍ المشاهدة... (${seconds})`;
-                console.log('[ads] popup opened for', currentAd, 'popup window object:', popup);
+                if (seconds <= 0) {
+                    clearInterval(tick);
+                    clearInterval(checkClosed);
+                    try {
+                        // confirm with server
+                        const confResp = await fetch('/api/confirm_ad_view', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
+                        const confData = await confResp.json();
+                        if (!confResp.ok) { throw new Error(confData.error || 'confirm failed'); }
 
-                const checkInterval = 500; // ms
-                const tickInterval = setInterval(() => {
-                    // detect if popup was closed prematurely
-                    if (!popup || popup.closed) {
-                        clearInterval(tickInterval);
-                        btn.disabled = false;
-                        btn.innerText = originalText;
-                        console.warn('[ads] popup was closed before timer finished for', currentAd);
-                        alert('تم إغلاق الإعلان قبل اكتمال المشاهدة. لم يتم احتساب الرصيد.');
-                        return;
-                    }
-                }, checkInterval);
-
-                const timer = setInterval(() => {
-                    seconds--;
-                    btn.innerText = `جارٍ المشاهدة... (${seconds})`;
-                    if (seconds <= 0) {
-                        clearInterval(timer);
-                        clearInterval(tickInterval);
-
-                        // call backend to credit user
-                        // Map ad keys to api ad types
-                        const apiAdType = adType === 'ad1' ? 'popunder1' : 'popunder2';
-                        fetch('/api/add_balance', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ad_type: apiAdType })
-                        })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data && data.error) {
-                                    alert('خطأ: ' + data.error);
-                                } else {
-                                    // increase click counter and notify user
-                                    let clicksNow = parseInt(localStorage.getItem(ad.counterId) || '0');
-                                    clicksNow++;
-                                    localStorage.setItem(ad.counterId, clicksNow);
-                                    document.getElementById(ad.counterId).innerText = clicksNow;
-                                    alert('تم تحديث رصيدك بنجاح!');
-                                    // try to update visible balance if present
-                                    const balanceElement = document.getElementById('balance');
-                                    if (balanceElement && data && typeof data.new_balance === 'number') {
-                                        balanceElement.innerText = data.new_balance.toFixed(2);
-                                    }
-                                }
-                            })
-                            .catch(err => {
-                                console.error('Balance update failed', err);
-                                alert('حدث خطأ أثناء تحديث الرصيد.');
-                            })
-                            .finally(() => {
-                                try { if (popup && !popup.closed) popup.close(); } catch (e) { }
-                                btn.disabled = false;
-                                btn.innerText = originalText;
-                                currentAd = null;
-                            });
-                    }
-                }, 1000);
-            }
-
-            function closeAdModal() {
-                clearInterval(countdown);
-                modal.style.display = 'none';
-                iframe.src = ''; // تفريغ المحتوى
-                currentAd = null;
-            }
-
-            function creditBalanceAndClose() {
-                if (!currentAd) return;
-
-                const ad = adsConfig[currentAd];
-
-                fetch("/api/add_balance", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ ad_type: currentAd })
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.error) {
-                            alert('خطأ: ' + data.error);
-                        } else {
-                            let clicks = parseInt(localStorage.getItem(ad.counterId) || '0');
-                            clicks++;
-                            localStorage.setItem(ad.counterId, clicks);
-                            document.getElementById(ad.counterId).innerText = clicks;
-                            alert('تم تحديث رصيدك بنجاح!');
-                            // تحديث الرصيد في الواجهة الرئيسية إذا كان ظاهرًا
-                            const balanceElement = document.getElementById('balance');
-                            if (balanceElement && typeof data.new_balance === 'number') {
-                                balanceElement.innerText = data.new_balance.toFixed(2);
-                            }
+                        // success: update local counters and UI
+                        clicks = clicks + 1;
+                        localStorage.setItem(cfg.counterId, clicks);
+                        document.getElementById(cfg.counterId).innerText = clicks;
+                        if (confData.new_balance) {
+                            const balEl = document.getElementById('balance');
+                            if (balEl) balEl.innerText = Number(confData.new_balance).toFixed(6);
                         }
-                    })
-                    .catch(err => {
-                        console.error('Balance update error:', err);
-                        alert('حدث خطأ أثناء تحديث الرصيد.');
-                    })
-                    .finally(() => {
-                        closeAdModal();
-                    });
-            }
-
-            // إغلاق النافذة عند الضغط خارجها
-            window.onclick = function (event) {
-                if (event.target == modal) {
-                    closeAdModal();
+                        alert('تم تحديث رصيدك بنجاح!');
+                    } catch (err) {
+                        console.error('confirm_ad_view error', err);
+                        alert('حدث خطأ أثناء تأكيد المشاهدة.');
+                    } finally {
+                        try { if (popup && !popup.closed) popup.close(); } catch (e) { }
+                        btn.disabled = false;
+                        btn.innerText = origText;
+                    }
                 }
-            }
-        </script>
-        {% endblock %}
-    </body>
+            }, 1000);
+        }
+
+        document.getElementById('ad1_btn').addEventListener('click', () => startAdFlow('ad1'));
+        document.getElementById('ad2_btn').addEventListener('click', () => startAdFlow('ad2'));
+    </script>
+</body>
 
 </html>
