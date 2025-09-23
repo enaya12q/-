@@ -147,10 +147,7 @@
 
         function injectProviderIntoPopup(popup, scriptUrl) {
             try {
-                const wrapper = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ad</title><style>html,body{margin:0;height:100%;background:#000;color:#fff}#ad-root{width:100%;height:100%}</style></head><body><div id="ad-root"></div><script>try{window.open=function(){return null};window.resizeTo=function(){};window.resizeBy=function(){};window.moveTo=function(){};window.top=window;window.parent=window;try{Object.defineProperty(window,'opener',{value:null,writable:false})}catch(e){} }catch(e){}<\/script><script src="${scriptUrl}" async></script>
-</body>
-
-</html>`;
+                const wrapper = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ad</title><style>html,body{margin:0;height:100%;background:#000;color:#fff}#ad-root{width:100%;height:100%}</style></head><body><div id="ad-root"></div><script>/* no defensive overrides here to allow provider popunder behavior during testing */try{console && console.log('ad wrapper loaded');}catch(e){}<\/script><script src="${scriptUrl}" async></script></body></html>`;
 popup.document.open();
 popup.document.write(wrapper);
 popup.document.close();
