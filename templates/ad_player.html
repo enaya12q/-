@@ -10,7 +10,9 @@
             margin: 0;
             background: #000;
             color: #fff;
-            font-family: Arial, sans-serif
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            /* Prevent scrollbars from body */
         }
 
         .container {
@@ -18,23 +20,47 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            flex-direction: column
+            width: 100vw;
+            /* Ensure container fills the entire viewport */
+            flex-direction: column;
+            position: relative;
+            /* For absolute positioning of iframe */
+        }
+
+        .ad-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
         .msg {
             font-size: 18px;
-            margin-bottom: 10px
+            margin-bottom: 10px;
+            z-index: 1;
+            /* Ensure message is above iframe if needed */
+            background-color: rgba(0, 0, 0, 0.7);
+            /* Semi-transparent background for readability */
+            padding: 10px;
+            border-radius: 5px;
         }
 
         .brand {
             font-size: 14px;
-            color: #aaa
+            color: #aaa;
+            z-index: 1;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
+        <iframe class="ad-iframe" src="{{ ad_video_url }}" allow="autoplay; fullscreen" allowfullscreen></iframe>
         <div class="msg">يتم عرض الإعلان — انتظر حتى تكتمل مدة المشاهدة...</div>
         <div class="brand">Smart Lab — إعلان آمن</div>
     </div>

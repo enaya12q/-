@@ -21,6 +21,12 @@ app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'yymu fxwr hnws yz
 
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'enayabasmaji9@gmail.com')
 
+# Placeholder ad video URLs
+AD_VIDEO_URLS = {
+    'ad1': 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1', # Example YouTube video
+    'ad2': 'https://www.youtube.com/embed/M7lc1UVf-VE?autoplay=1'  # Another example
+}
+
 # --- Ad Balance API ---
 @app.route('/api/add_balance', methods=['POST'])
 def add_balance():
@@ -73,7 +79,14 @@ def start_ad_view():
     cursor.execute('INSERT INTO ad_views (token, user_id, ad_type, started_at, confirmed) VALUES (%s, %s, %s, NOW(), false)', (token, g.user['id'], ad_type))
     db.commit()
     cursor.close()
-    player_url = url_for('ad_player', token=token, _external=True)
+    
+    # Get the actual ad video URL based on ad_type
+    ad_video_url = AD_VIDEO_URLS.get(ad_type)
+    if not ad_video_url:
+        return jsonify({'error': 'Ad video URL not found for this ad type'}), 400
+
+    # Construct the player_url to point to ad_player.html with the ad_video_url as a query parameter
+    player_url = url_for('ad_player', token=token, ad_video_url=ad_video_url, _external=True)
     return jsonify({'token': token, 'player_url': player_url})
 
 
@@ -88,8 +101,13 @@ def ad_player(token):
         abort(404)
     if row.get('confirmed'):
         return '<h3>هذا الإعلان تم تأكيده مسبقاً.</h3>'
-    # Render a simple ad player page (can be replaced with provider script if needed)
-    return render_template('ad_player.html', token=token, ad_type=row.get('ad_type'))
+    
+    # Get the ad_video_url from query parameters
+    ad_video_url = request.args.get('ad_video_url')
+    if not ad_video_url:
+        return '<h3>خطأ: لم يتم تحديد رابط الفيديو الإعلاني.</h3>', 400
+
+    return render_template('ad_player.html', token=token, ad_type=row.get('ad_type'), ad_video_url=ad_video_url)
 
 
 @app.route('/api/confirm_ad_view', methods=['POST'])
